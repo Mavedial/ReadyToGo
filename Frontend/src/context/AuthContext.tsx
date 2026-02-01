@@ -1,4 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import { userAPI } from '../services/api';
 import { authAPI } from '../services/api';
 import { User, AuthContextType } from '../types';
 
@@ -10,16 +11,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Vérifier si un token existe au chargement
         const initAuth = async () => {
             const savedToken = localStorage.getItem('token');
             if (savedToken) {
                 try {
-                    const { data } = await authAPI.login('', ''); // Simuler une vérification
-                    setUser(data.user);
+                    // Vérifier le token en récupérant le profil
+                    const { data } = await userAPI.getProfile();
+                    setUser(data);
+                    setToken(savedToken);
                 } catch (error) {
+                    console.error('Token invalide:', error);
                     localStorage.removeItem('token');
                     setToken(null);
+                    setUser(null);
                 }
             }
             setLoading(false);
@@ -35,7 +39,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const register = async (username: string, email: string, password: string) => {
-        const { data } = await authAPI.register(username, email, password);
+        await authAPI.register(username, email, password);
         // Auto-login après register
         await login(username, password);
     };

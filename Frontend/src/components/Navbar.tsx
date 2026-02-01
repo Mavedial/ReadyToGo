@@ -15,7 +15,7 @@ const Navbar = () => {
     }
 
     return (
-        <nav className="navbar">
+            <nav className="navbar">
             <div className="navbar-container">
                 <Link to="/dashboard" className="navbar-logo">
                      ReadyToGo
