@@ -80,7 +80,7 @@ export const login = async (req: Request, res: Response) => {
         return res.json({
             message : "Connexion réussie !",
             token,
-            user : {username: user.username, role : user.role},
+            user : {id: user._id, username: user.username, role : user.role},
         });
     }
     catch(err){
