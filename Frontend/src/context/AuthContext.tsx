@@ -51,7 +51,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     if (loading) {
-        return <div className="loading">Chargement...</div>;
+        return (
+            <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                minHeight: '100vh',
+                fontSize: '1.5rem',
+                background: '#f9fafb'  // ← Ajoute un background pour voir
+            }}>
+                Chargement...
+            </div>
+        );
     }
 
     return (
