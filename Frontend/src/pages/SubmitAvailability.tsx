@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { eventAPI, availabilityAPI } from '../services/api';
-import { Event } from '../types';
+import type { Event } from '../types';
 import Calendar from '../components/Calendar';
 
 const SubmitAvailability: React.FC = () => {
@@ -12,91 +12,125 @@ const SubmitAvailability: React.FC = () => {
     const [selectedDates, setSelectedDates] = useState<Date[]>([]);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
 
     useEffect(() => {
-        if (id) {
-            loadEvent();
-            loadMyAvailability();
-        }
+        if (id) loadData(id);
     }, [id]);
 
-    const loadEvent = async () => {
+    const loadData = async (eventId: string) => {
+        setError('');
         try {
-            const { data } = await eventAPI.getEventById(id!);
-            setEvent(data);
-        } catch (error) {
-            console.error('Erreur chargement événement:', error);
-        }
-    };
+            const [eventRes, myAvailRes] = await Promise.allSettled([
+                eventAPI.getEventById(eventId),
+                availabilityAPI.getMyAvailability(eventId),
+            ]);
 
-    const loadMyAvailability = async () => {
-        try {
-            const { data } = await availabilityAPI.getMyAvailability(id!);
-            setSelectedDates(data.availableDates.map((d: string) => new Date(d)));
-        } catch (error) {
-            // Pas encore de disponibilités soumises
-            console.log('Aucune disponibilité existante');
+            if (eventRes.status === 'fulfilled') {
+                setEvent(eventRes.value.data);
+            } else {
+                setError('Événement introuvable');
+                return;
+            }
+
+            if (myAvailRes.status === 'fulfilled' && myAvailRes.value.data?.availableDates) {
+                const existing: Date[] = myAvailRes.value.data.availableDates.map(
+                    (d: string) => new Date(d)
+                );
+                setSelectedDates(existing);
+            }
+        } catch {
+            setError('Erreur lors du chargement');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleSubmit = async () => {
-        if (selectedDates.length === 0) {
-            alert('Veuillez sélectionner au moins une date');
-            return;
-        }
-
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!event) return;
+        setError('');
+        setSuccess('');
         setSubmitting(true);
+
         try {
-            await availabilityAPI.submitAvailability(
-                id!,
-                selectedDates.map(d => d.toISOString())
-            );
-            navigate(`/events/${id}`);
-        } catch (error: any) {
-            alert(error.response?.data?.message || 'Erreur lors de la soumission');
+            const dateStrings = selectedDates.map((d) => d.toISOString());
+            await availabilityAPI.submitAvailability(event._id, dateStrings);
+            setSuccess('Disponibilités enregistrées avec succès !');
+            setTimeout(() => navigate(`/events/${event._id}`), 1500);
+        } catch {
+            setError("Erreur lors de l'enregistrement");
         } finally {
             setSubmitting(false);
         }
     };
 
-    if (loading) {
-        return <div className="loading">Chargement...</div>;
-    }
-
-    if (!event) {
-        return <div className="error-page">Événement non trouvé</div>;
-    }
+    if (loading) return <div className="loading">Chargement...</div>;
+    if (error && !event)
+        return (
+            <div className="page-container">
+                <div className="alert alert-error">{error}</div>
+                <Link to="/events" className="btn btn-secondary">
+                    Retour aux événements
+                </Link>
+            </div>
+        );
+    if (!event) return null;
 
     return (
-        <div className="page-container">
+        <div className="page-container page-narrow">
             <div className="page-header">
-                <h1>🗓️ Mes disponibilités</h1>
-                <p className="subtitle">Pour : {event.title}</p>
+                <div>
+                    <Link to={`/events/${event._id}`} className="back-link">
+                        ← {event.title}
+                    </Link>
+                    <h1>Mes disponibilités</h1>
+                </div>
             </div>
 
-            <Calendar
-                startDate={new Date(event.startDateRange)}
-                endDate={new Date(event.endDateRange)}
-                selectedDates={selectedDates}
-                onDatesChange={setSelectedDates}
-            />
+            {error && <div className="alert alert-error">{error}</div>}
+            {success && <div className="alert alert-success">{success}</div>}
 
-            <div className="form-actions">
-                <button
-                    onClick={() => navigate(`/events/${id}`)}
-                    className="btn-secondary"
-                >
-                    Annuler
-                </button>
-                <button
-                    onClick={handleSubmit}
-                    disabled={submitting || selectedDates.length === 0}
-                    className="btn-primary"
-                >
-                    {submitting ? 'Enregistrement...' : `Enregistrer (${selectedDates.length} dates)`}
-                </button>
+            <div className="card">
+                <p className="text-muted">
+                    Sélectionnez les dates auxquelles vous êtes disponible entre le{' '}
+                    <strong>
+                        {new Date(event.startDateRange).toLocaleDateString('fr-FR')}
+                    </strong>{' '}
+                    et le{' '}
+                    <strong>
+                        {new Date(event.endDateRange).toLocaleDateString('fr-FR')}
+                    </strong>
+                    .
+                </p>
+
+                <form onSubmit={handleSubmit}>
+                    <Calendar
+                        startDate={new Date(event.startDateRange)}
+                        endDate={new Date(event.endDateRange)}
+                        selectedDates={selectedDates}
+                        onDatesChange={setSelectedDates}
+                    />
+
+                    <div className="form-actions" style={{ marginTop: '1.5rem' }}>
+                        <Link
+                            to={`/events/${event._id}`}
+                            className="btn btn-secondary"
+                        >
+                            Annuler
+                        </Link>
+                        <button
+                            type="submit"
+                            className="btn btn-primary"
+                            disabled={submitting}
+                        >
+                            {submitting
+                                ? 'Enregistrement...'
+                                : `Enregistrer (${selectedDates.length} date(s))`}
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     );

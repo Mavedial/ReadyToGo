@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-const Register = () => {
+const Register: React.FC = () => {
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -27,13 +27,18 @@ const Register = () => {
             return;
         }
 
+        if (username.length > 20) {
+            setError("Le nom d'utilisateur ne peut pas dépasser 20 caractères");
+            return;
+        }
+
         setLoading(true);
 
         try {
             await register(username, email, password);
             navigate('/dashboard');
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Erreur lors de l\'inscription');
+            setError(err.response?.data?.message || "Erreur lors de l'inscription");
         } finally {
             setLoading(false);
         }
@@ -42,63 +47,74 @@ const Register = () => {
     return (
         <div className="auth-container">
             <div className="auth-card">
-                <h1>🚀 ReadyToGo</h1>
-                <h2>Inscription</h2>
+                <h1 className="auth-title">ReadyToGo</h1>
+                <h2 className="auth-subtitle">Créer un compte</h2>
 
-                {error && <div className="error-message">{error}</div>}
+                {error && <div className="alert alert-error">{error}</div>}
 
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleSubmit} noValidate>
                     <div className="form-group">
-                        <label>Nom d'utilisateur</label>
+                        <label htmlFor="username">Nom d'utilisateur</label>
                         <input
+                            id="username"
                             type="text"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             required
-                            placeholder="Choisissez un username"
+                            maxLength={20}
+                            autoComplete="username"
+                            placeholder="Max. 20 caractères"
                         />
                     </div>
 
                     <div className="form-group">
-                        <label>Email</label>
+                        <label htmlFor="email">Email</label>
                         <input
+                            id="email"
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
+                            autoComplete="email"
                             placeholder="votre@email.com"
                         />
                     </div>
 
                     <div className="form-group">
-                        <label>Mot de passe</label>
+                        <label htmlFor="password">Mot de passe</label>
                         <input
+                            id="password"
                             type="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
+                            minLength={8}
+                            autoComplete="new-password"
                             placeholder="Min. 8 caractères"
                         />
                     </div>
 
                     <div className="form-group">
-                        <label>Confirmer le mot de passe</label>
+                        <label htmlFor="confirmPassword">Confirmer le mot de passe</label>
                         <input
+                            id="confirmPassword"
                             type="password"
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
                             required
-                            placeholder="Confirmez votre mot de passe"
+                            autoComplete="new-password"
+                            placeholder="Répétez votre mot de passe"
                         />
                     </div>
 
-                    <button type="submit" className="btn-primary" disabled={loading}>
-                        {loading ? 'Inscription...' : 'S\'inscrire'}
+                    <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
+                        {loading ? 'Inscription en cours...' : "S'inscrire"}
                     </button>
                 </form>
 
-                <p className="auth-link">
-                    Déjà un compte ? <Link to="/login">Se connecter</Link>
+                <p className="auth-footer">
+                    Déjà un compte ?{' '}
+                    <Link to="/login">Se connecter</Link>
                 </p>
             </div>
         </div>

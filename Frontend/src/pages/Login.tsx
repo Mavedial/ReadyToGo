@@ -20,7 +20,7 @@ const Login: React.FC = () => {
             await login(username, password);
             navigate('/dashboard');
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Erreur de connexion');
+            setError(err.response?.data?.message || 'Identifiants invalides');
         } finally {
             setLoading(false);
         }
@@ -29,41 +29,46 @@ const Login: React.FC = () => {
     return (
         <div className="auth-container">
             <div className="auth-card">
-                <h1>🚀 ReadyToGo</h1>
-                <h2>Connexion</h2>
+                <h1 className="auth-title">ReadyToGo</h1>
+                <h2 className="auth-subtitle">Connexion</h2>
 
-                {error && <div className="error-message">{error}</div>}
+                {error && <div className="alert alert-error">{error}</div>}
 
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleSubmit} noValidate>
                     <div className="form-group">
-                        <label>Nom d'utilisateur</label>
+                        <label htmlFor="username">Nom d'utilisateur</label>
                         <input
+                            id="username"
                             type="text"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             required
-                            placeholder="Entrez votre username"
+                            autoComplete="username"
+                            placeholder="Votre nom d'utilisateur"
                         />
                     </div>
 
                     <div className="form-group">
-                        <label>Mot de passe</label>
+                        <label htmlFor="password">Mot de passe</label>
                         <input
+                            id="password"
                             type="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
-                            placeholder="Entrez votre mot de passe"
+                            autoComplete="current-password"
+                            placeholder="Votre mot de passe"
                         />
                     </div>
 
-                    <button type="submit" className="btn-primary" disabled={loading}>
-                        {loading ? 'Connexion...' : 'Se connecter'}
+                    <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
+                        {loading ? 'Connexion en cours...' : 'Se connecter'}
                     </button>
                 </form>
 
-                <p className="auth-link">
-                    Pas encore de compte ? <Link to="/register">S'inscrire</Link>
+                <p className="auth-footer">
+                    Pas encore de compte ?{' '}
+                    <Link to="/register">S'inscrire</Link>
                 </p>
             </div>
         </div>

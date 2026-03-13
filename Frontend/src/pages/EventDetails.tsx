@@ -1,202 +1,317 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { eventAPI, availabilityAPI } from '../services/api';
-import { Event, Availability } from '../types';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { eventAPI, availabilityAPI, userAPI } from '../services/api';
+import type { Event, User } from '../types';
+
+const statusLabel: Record<string, string> = {
+    planning: 'En planification',
+    voting: 'Vote en cours',
+    confirmed: 'Confirmé',
+    cancelled: 'Annulé',
+};
 
 const EventDetails: React.FC = () => {
     const { id } = useParams<{ id: string }>();
-    const navigate = useNavigate();
     const { user } = useAuth();
+    const navigate = useNavigate();
 
     const [event, setEvent] = useState<Event | null>(null);
-    const [availabilities, setAvailabilities] = useState<Availability[]>([]);
     const [loading, setLoading] = useState(true);
-    const [calculating, setCalculating] = useState(false);
+    const [error, setError] = useState('');
+    const [actionError, setActionError] = useState('');
+    const [bestDate, setBestDate] = useState<string | null>(null);
+    const [calculatingDate, setCalculatingDate] = useState(false);
+
+    // Invite users
+    const [inviteQuery, setInviteQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<User[]>([]);
+    const [searching, setSearching] = useState(false);
+    const [inviting, setInviting] = useState(false);
 
     useEffect(() => {
-        if (id) {
-            loadEventDetails();
-        }
+        if (id) loadEvent(id);
     }, [id]);
 
-    const loadEventDetails = async () => {
+    const loadEvent = async (eventId: string) => {
+        setError('');
         try {
-            const [eventRes, availRes] = await Promise.all([
-                eventAPI.getEventById(id!),
-                availabilityAPI.getEventAvailabilities(id!)
-            ]);
-            setEvent(eventRes.data);
-            setAvailabilities(availRes.data);
-        } catch (error) {
-            console.error('Erreur chargement événement:', error);
+            const { data } = await eventAPI.getEventById(eventId);
+            setEvent(data);
+        } catch {
+            setError('Événement introuvable ou accès refusé');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleCalculateBestDate = async () => {
-        setCalculating(true);
+    const handleDelete = async () => {
+        if (!event || !window.confirm('Supprimer cet événement définitivement ?')) return;
         try {
-            await availabilityAPI.calculateBestDate(id!);
-            await loadEventDetails();
-            alert('La meilleure date a été calculée ! 🎉');
-        } catch (error: any) {
-            alert(error.response?.data?.message || 'Erreur lors du calcul');
-        } finally {
-            setCalculating(false);
-        }
-    };
-
-    const handleDeleteEvent = async () => {
-        if (!window.confirm('Êtes-vous sûr de vouloir supprimer cet événement ?')) {
-            return;
-        }
-
-        try {
-            await eventAPI.deleteEvent(id!);
+            await eventAPI.deleteEvent(event._id);
             navigate('/events');
-        } catch (error) {
-            alert('Erreur lors de la suppression');
+        } catch {
+            setActionError('Erreur lors de la suppression');
         }
     };
 
-    if (loading) {
-        return <div className="loading">Chargement...</div>;
-    }
+    const handleSearchUsers = async () => {
+        if (!inviteQuery.trim()) return;
+        setSearching(true);
+        try {
+            const { data } = await userAPI.searchUsers(inviteQuery.trim());
+            setSearchResults(data);
+        } catch {
+            setActionError('Erreur lors de la recherche');
+        } finally {
+            setSearching(false);
+        }
+    };
 
-    if (!event) {
-        return <div className="error-page">Événement non trouvé</div>;
-    }
+    const handleInvite = async (userId: string) => {
+        if (!event) return;
+        setInviting(true);
+        try {
+            await eventAPI.inviteUsers(event._id, [userId]);
+            setSearchResults([]);
+            setInviteQuery('');
+            loadEvent(event._id);
+        } catch {
+            setActionError("Erreur lors de l'invitation");
+        } finally {
+            setInviting(false);
+        }
+    };
 
-    const isCreator = event.creator.id === user?.id;
-    const isParticipant = event.participants.some(p => p.id === user?.id);
-    const hasSubmittedAvailability = availabilities.some(a => a.user.id === user?.id);
+    const handleCalculateBestDate = async () => {
+        if (!event) return;
+        setCalculatingDate(true);
+        setBestDate(null);
+        try {
+            const { data } = await availabilityAPI.calculateBestDate(event._id);
+            setBestDate(data.bestDate ?? null);
+        } catch {
+            setActionError('Erreur lors du calcul de la meilleure date');
+        } finally {
+            setCalculatingDate(false);
+        }
+    };
+
+    if (loading) return <div className="loading">Chargement...</div>;
+    if (error)
+        return (
+            <div className="page-container">
+                <div className="alert alert-error">{error}</div>
+                <Link to="/events" className="btn btn-secondary">
+                    Retour aux événements
+                </Link>
+            </div>
+        );
+    if (!event) return null;
+
+    const creatorId = (event.creator as any)?._id ?? event.creator?.id;
+    const isCreator = user?.id === creatorId;
+    const alreadyParticipant = event.participants.some(
+        (p) => (p as any)._id === user?.id || p.id === user?.id
+    );
 
     return (
         <div className="page-container">
             {/* Header */}
-            <div className="event-details-header">
+            <div className="page-header">
                 <div>
-                    <div className={`event-status status-${event.status}`}>
-                        {event.status}
-                    </div>
+                    <Link to="/events" className="back-link">
+                        ← Événements
+                    </Link>
                     <h1>{event.title}</h1>
-                    <p className="event-creator">
-                        Créé par <strong>{event.creator.username}</strong>
-                    </p>
                 </div>
-
                 {isCreator && (
-                    <div className="event-actions">
-                        <Link to={`/events/${id}/edit`} className="btn-secondary">
-                            ✏️ Modifier
+                    <div className="page-header-actions">
+                        <Link
+                            to={`/events/${event._id}/edit`}
+                            className="btn btn-secondary"
+                        >
+                            Modifier
                         </Link>
-                        <button onClick={handleDeleteEvent} className="btn-danger">
-                            🗑️ Supprimer
+                        <button className="btn btn-danger" onClick={handleDelete}>
+                            Supprimer
                         </button>
                     </div>
                 )}
             </div>
 
-            {/* Description */}
-            {event.description && (
-                <div className="section">
-                    <h2>Description</h2>
-                    <p>{event.description}</p>
-                </div>
-            )}
+            {actionError && <div className="alert alert-error">{actionError}</div>}
 
-            {/* Informations */}
-            <div className="section">
-                <h2>📅 Informations</h2>
-                <div className="info-grid">
-                    <div className="info-card">
-                        <span className="info-label">Période proposée</span>
-                        <span className="info-value">
-                            {new Date(event.startDateRange).toLocaleDateString()} -
-                            {new Date(event.endDateRange).toLocaleDateString()}
-                        </span>
+            <div className="detail-grid">
+                {/* Main */}
+                <div className="detail-main">
+                    {/* General info */}
+                    <div className="card">
+                        <h2 className="card-title">Informations</h2>
+                        <dl className="detail-list">
+                            <div className="detail-row">
+                                <dt className="detail-label">Statut</dt>
+                                <dd>
+                                    <span className={`badge badge-${event.status}`}>
+                                        {statusLabel[event.status] ?? event.status}
+                                    </span>
+                                </dd>
+                            </div>
+                            {event.description && (
+                                <div className="detail-row">
+                                    <dt className="detail-label">Description</dt>
+                                    <dd>{event.description}</dd>
+                                </div>
+                            )}
+                            <div className="detail-row">
+                                <dt className="detail-label">Période</dt>
+                                <dd>
+                                    {new Date(event.startDateRange).toLocaleDateString('fr-FR')}{' '}
+                                    —{' '}
+                                    {new Date(event.endDateRange).toLocaleDateString('fr-FR')}
+                                </dd>
+                            </div>
+                            {event.finalDate && (
+                                <div className="detail-row">
+                                    <dt className="detail-label">Date retenue</dt>
+                                    <dd className="text-success">
+                                        {new Date(event.finalDate).toLocaleDateString('fr-FR')}
+                                    </dd>
+                                </div>
+                            )}
+                            <div className="detail-row">
+                                <dt className="detail-label">Organisateur</dt>
+                                <dd>{event.creator?.username ?? 'Inconnu'}</dd>
+                            </div>
+                        </dl>
                     </div>
 
-                    {event.finalDate && (
-                        <div className="info-card highlighted">
-                            <span className="info-label">🎯 Date choisie</span>
-                            <span className="info-value">
-                                {new Date(event.finalDate).toLocaleDateString()}
-                            </span>
+                    {/* Participants */}
+                    <div className="card">
+                        <h2 className="card-title">
+                            Participants ({event.participants.length})
+                        </h2>
+                        {event.participants.length === 0 ? (
+                            <p className="text-muted">Aucun participant pour l'instant</p>
+                        ) : (
+                            <ul className="user-list">
+                                {event.participants.map((p) => (
+                                    <li
+                                        key={(p as any)._id ?? p.id}
+                                        className="user-list-item"
+                                    >
+                                        {p.username}
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+
+                    {/* Invités */}
+                    {event.invitedUsers.length > 0 && (
+                        <div className="card">
+                            <h2 className="card-title">
+                                Invités en attente ({event.invitedUsers.length})
+                            </h2>
+                            <ul className="user-list">
+                                {event.invitedUsers.map((u) => (
+                                    <li
+                                        key={(u as any)._id ?? u.id}
+                                        className="user-list-item text-muted"
+                                    >
+                                        {u.username}
+                                    </li>
+                                ))}
+                            </ul>
                         </div>
                     )}
-
-                    <div className="info-card">
-                        <span className="info-label">Participants</span>
-                        <span className="info-value">{event.participants.length}</span>
-                    </div>
-
-                    <div className="info-card">
-                        <span className="info-label">Disponibilités soumises</span>
-                        <span className="info-value">{availabilities.length}</span>
-                    </div>
                 </div>
-            </div>
 
-            {/* Participants */}
-            <div className="section">
-                <h2>👥 Participants ({event.participants.length})</h2>
-                <div className="participants-list">
-                    {event.participants.map((participant) => (
-                        <div key={participant.id} className="participant-chip">
-                            <span>👤 {participant.username}</span>
-                            {participant.id === event.creator.id && (
-                                <span className="badge">Créateur</span>
-                            )}
-                            {availabilities.some(a => a.user.id === participant.id) && (
-                                <span className="badge success">✓ Dispo soumises</span>
-                            )}
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* Actions disponibilités */}
-            {isParticipant && event.status === 'planning' && (
-                <div className="section">
-                    <h2>🗓️ Vos disponibilités</h2>
-                    {hasSubmittedAvailability ? (
-                        <div className="success-message">
-                            ✓ Vous avez déjà soumis vos disponibilités
-                            <Link to={`/events/${id}/availability`} className="btn-secondary">
-                                Modifier mes disponibilités
-                            </Link>
-                        </div>
-                    ) : (
-                        <div className="warning-message">
-                            ⚠️ Vous n'avez pas encore soumis vos disponibilités
-                            <Link to={`/events/${id}/availability`} className="btn-primary">
+                {/* Sidebar */}
+                <div className="detail-sidebar">
+                    {/* Availability */}
+                    {alreadyParticipant && event.status !== 'cancelled' && (
+                        <div className="card">
+                            <h2 className="card-title">Mes disponibilités</h2>
+                            <p className="text-muted">
+                                Indiquez les dates où vous êtes disponible.
+                            </p>
+                            <Link
+                                to={`/events/${event._id}/availability`}
+                                className="btn btn-primary btn-block"
+                            >
                                 Soumettre mes disponibilités
                             </Link>
                         </div>
                     )}
-                </div>
-            )}
 
-            {/* Calculer la meilleure date (créateur seulement) */}
-            {isCreator && event.status === 'planning' && availabilities.length > 0 && (
-                <div className="section">
-                    <h2>🤖 Calculer la meilleure date</h2>
-                    <p>
-                        {availabilities.length}/{event.participants.length} participants
-                        ont soumis leurs disponibilités.
-                    </p>
-                    <button
-                        onClick={handleCalculateBestDate}
-                        disabled={calculating}
-                        className="btn-primary"
-                    >
-                        {calculating ? 'Calcul en cours...' : '🎯 Calculer la meilleure date'}
-                    </button>
+                    {/* Calculate best date */}
+                    {isCreator &&
+                        event.status !== 'confirmed' &&
+                        event.status !== 'cancelled' && (
+                            <div className="card">
+                                <h2 className="card-title">Meilleure date</h2>
+                                <p className="text-muted">
+                                    Calcule la date optimale selon les disponibilités.
+                                </p>
+                                <button
+                                    className="btn btn-secondary btn-block"
+                                    onClick={handleCalculateBestDate}
+                                    disabled={calculatingDate}
+                                >
+                                    {calculatingDate ? 'Calcul...' : 'Calculer'}
+                                </button>
+                                {bestDate && (
+                                    <p className="text-success" style={{ marginTop: '0.75rem' }}>
+                                        Meilleure date :{' '}
+                                        {new Date(bestDate).toLocaleDateString('fr-FR')}
+                                    </p>
+                                )}
+                            </div>
+                        )}
+
+                    {/* Invite users */}
+                    {isCreator && (
+                        <div className="card">
+                            <h2 className="card-title">Inviter</h2>
+                            <div className="search-bar">
+                                <input
+                                    type="text"
+                                    placeholder="Rechercher un utilisateur..."
+                                    value={inviteQuery}
+                                    onChange={(e) => setInviteQuery(e.target.value)}
+                                    onKeyDown={(e) =>
+                                        e.key === 'Enter' && handleSearchUsers()
+                                    }
+                                />
+                                <button
+                                    className="btn btn-secondary btn-sm"
+                                    onClick={handleSearchUsers}
+                                    disabled={searching}
+                                >
+                                    {searching ? '...' : 'Chercher'}
+                                </button>
+                            </div>
+                            {searchResults.length > 0 && (
+                                <ul className="search-results">
+                                    {searchResults.map((u) => (
+                                        <li key={u.id} className="search-result-item">
+                                            <span>{u.username}</span>
+                                            <button
+                                                className="btn btn-primary btn-sm"
+                                                onClick={() => handleInvite(u.id)}
+                                                disabled={inviting}
+                                            >
+                                                Inviter
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+                    )}
                 </div>
-            )}
+            </div>
         </div>
     );
 };
