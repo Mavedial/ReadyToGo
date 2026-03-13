@@ -1,32 +1,41 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { eventAPI } from '../services/api';
-import { Event } from '../types';
+import type { Event } from '../types';
+
+type StatusFilter = 'all' | 'planning' | 'voting' | 'confirmed' | 'cancelled';
+
+const statusLabel: Record<string, string> = {
+    planning: 'En planification',
+    voting: 'Vote en cours',
+    confirmed: 'Confirmé',
+    cancelled: 'Annulé',
+};
 
 const Events: React.FC = () => {
     const [events, setEvents] = useState<Event[]>([]);
     const [loading, setLoading] = useState(true);
-    const [filter, setFilter] = useState<'all' | 'planning' | 'confirmed'>('all');
+    const [error, setError] = useState('');
+    const [filter, setFilter] = useState<StatusFilter>('all');
 
     useEffect(() => {
         loadEvents();
     }, []);
 
     const loadEvents = async () => {
+        setError('');
         try {
             const { data } = await eventAPI.getEvents();
             setEvents(data);
-        } catch (error) {
-            console.error('Erreur chargement événements:', error);
+        } catch {
+            setError('Erreur lors du chargement des événements');
         } finally {
             setLoading(false);
         }
     };
 
-    const filteredEvents = events.filter(event => {
-        if (filter === 'all') return true;
-        return event.status === filter;
-    });
+    const filteredEvents =
+        filter === 'all' ? events : events.filter((e) => e.status === filter);
 
     if (loading) {
         return <div className="loading">Chargement...</div>;
@@ -35,41 +44,44 @@ const Events: React.FC = () => {
     return (
         <div className="page-container">
             <div className="page-header">
-                <h1>📅 Mes événements</h1>
-                <Link to="/events/create" className="btn-primary">
-                    ➕ Créer un événement
+                <h1>Mes événements</h1>
+                <Link to="/events/create" className="btn btn-primary">
+                    + Créer un événement
                 </Link>
             </div>
 
-            {/* Filtres */}
-            <div className="filters">
-                <button
-                    className={`filter-btn ${filter === 'all' ? 'active' : ''}`}
-                    onClick={() => setFilter('all')}
-                >
-                    Tous ({events.length})
-                </button>
-                <button
-                    className={`filter-btn ${filter === 'planning' ? 'active' : ''}`}
-                    onClick={() => setFilter('planning')}
-                >
-                    En planification ({events.filter(e => e.status === 'planning').length})
-                </button>
-                <button
-                    className={`filter-btn ${filter === 'confirmed' ? 'active' : ''}`}
-                    onClick={() => setFilter('confirmed')}
-                >
-                    Confirmés ({events.filter(e => e.status === 'confirmed').length})
-                </button>
+            {error && <div className="alert alert-error">{error}</div>}
+
+            {/* Filters */}
+            <div className="filter-bar">
+                {(['all', 'planning', 'voting', 'confirmed', 'cancelled'] as StatusFilter[]).map(
+                    (s) => (
+                        <button
+                            key={s}
+                            className={`filter-btn${filter === s ? ' active' : ''}`}
+                            onClick={() => setFilter(s)}
+                        >
+                            {s === 'all'
+                                ? `Tous (${events.length})`
+                                : `${statusLabel[s]} (${events.filter((e) => e.status === s).length})`}
+                        </button>
+                    )
+                )}
             </div>
 
-            {/* Liste des événements */}
+            {/* Events list */}
             {filteredEvents.length === 0 ? (
                 <div className="empty-state">
-                    <p>Aucun événement trouvé</p>
-                    <Link to="/events/create" className="btn-secondary">
-                        Créer mon premier événement
-                    </Link>
+                    <p>
+                        {filter === 'all'
+                            ? "Vous n'avez pas encore d'événements."
+                            : 'Aucun événement pour ce filtre.'}
+                    </p>
+                    {filter === 'all' && (
+                        <Link to="/events/create" className="btn btn-primary">
+                            Créer mon premier événement
+                        </Link>
+                    )}
                 </div>
             ) : (
                 <div className="events-grid">
@@ -79,33 +91,26 @@ const Events: React.FC = () => {
                             key={event._id}
                             className="event-card"
                         >
-                            <div className={`event-status status-${event.status}`}>
-                                {event.status}
+                            <div className={`badge badge-${event.status}`}>
+                                {statusLabel[event.status] ?? event.status}
                             </div>
-                            <h3>{event.title}</h3>
-                            <p className="event-description">{event.description}</p>
-
-                            <div className="event-info">
-                                <div className="info-item">
-                                    <span className="info-label">Période :</span>
-                                    <span>
-                                        {new Date(event.startDateRange).toLocaleDateString()} -
-                                        {new Date(event.endDateRange).toLocaleDateString()}
-                                    </span>
-                                </div>
-
-                                {event.finalDate && (
-                                    <div className="info-item highlighted">
-                                        <span className="info-label">📅 Date choisie :</span>
-                                        <span>{new Date(event.finalDate).toLocaleDateString()}</span>
-                                    </div>
-                                )}
-
-                                <div className="info-item">
-                                    <span className="info-label">👥 Participants :</span>
-                                    <span>{event.participants.length}</span>
-                                </div>
+                            <h3 className="event-card-title">{event.title}</h3>
+                            {event.description && (
+                                <p className="event-card-description">{event.description}</p>
+                            )}
+                            <div className="event-card-meta">
+                                <span>
+                                    {new Date(event.startDateRange).toLocaleDateString('fr-FR')}{' '}
+                                    — {new Date(event.endDateRange).toLocaleDateString('fr-FR')}
+                                </span>
+                                <span>{event.participants.length} participant(s)</span>
                             </div>
+                            {event.finalDate && (
+                                <div className="event-card-final-date">
+                                    Date retenue :{' '}
+                                    {new Date(event.finalDate).toLocaleDateString('fr-FR')}
+                                </div>
+                            )}
                         </Link>
                     ))}
                 </div>

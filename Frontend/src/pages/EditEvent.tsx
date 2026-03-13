@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { eventAPI, friendAPI } from '../services/api';
-import type { User } from '../types';
+import { eventAPI } from '../services/api';
+import type { Event } from '../types';
 
-const CreateEvent: React.FC = () => {
+const EditEvent: React.FC = () => {
+    const { id } = useParams<{ id: string }>();
+    const { user } = useAuth();
     const navigate = useNavigate();
-    const { user: currentUser } = useAuth();
-    const [loading, setLoading] = useState(false);
-    const [friends, setFriends] = useState<User[]>([]);
+
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
 
     // Form state
@@ -16,30 +18,36 @@ const CreateEvent: React.FC = () => {
     const [description, setDescription] = useState('');
     const [startDateRange, setStartDateRange] = useState('');
     const [endDateRange, setEndDateRange] = useState('');
-    const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>([]);
+    const [status, setStatus] = useState<Event['status']>('planning');
+    const [finalDate, setFinalDate] = useState('');
 
     useEffect(() => {
-        loadFriends();
-    }, []);
+        if (id) loadEvent(id);
+    }, [id]);
 
-    const loadFriends = async () => {
+    const loadEvent = async (eventId: string) => {
         try {
-            const { data } = await friendAPI.getFriends();
-            // getFriends returns Friendship[]; extract the other user from each friendship
-            const friendUsers: User[] = (data as any[]).map((f) => {
-                const reqId = f.requester?._id ?? f.requester?.id;
-                return reqId === currentUser?.id ? f.recipient : f.requester;
-            }).filter(Boolean);
-            setFriends(friendUsers);
-        } catch {
-            // Friends list is optional – silently fail
-        }
-    };
+            const { data } = await eventAPI.getEventById(eventId);
+            const event: Event = data;
 
-    const toggleFriend = (id: string) => {
-        setSelectedFriendIds((prev) =>
-            prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-        );
+            // Check creator
+            const creatorId = (event.creator as any)?._id ?? event.creator?.id;
+            if (user?.id !== creatorId) {
+                navigate(`/events/${eventId}`);
+                return;
+            }
+
+            setTitle(event.title);
+            setDescription(event.description ?? '');
+            setStartDateRange(event.startDateRange.split('T')[0]);
+            setEndDateRange(event.endDateRange.split('T')[0]);
+            setStatus(event.status);
+            setFinalDate(event.finalDate ? event.finalDate.split('T')[0] : '');
+        } catch {
+            setError('Événement introuvable');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -50,42 +58,45 @@ const CreateEvent: React.FC = () => {
             setError('Le titre est requis');
             return;
         }
-        if (!startDateRange || !endDateRange) {
-            setError('Les dates de début et de fin sont requises');
-            return;
-        }
         if (new Date(startDateRange) >= new Date(endDateRange)) {
             setError('La date de début doit être antérieure à la date de fin');
             return;
         }
 
-        setLoading(true);
+        setSaving(true);
         try {
-            const { data } = await eventAPI.createEvent({
+            await eventAPI.updateEvent(id!, {
                 title: title.trim(),
                 description: description.trim(),
                 startDateRange,
                 endDateRange,
-                invitedUserIds: selectedFriendIds,
+                status,
+                finalDate: finalDate || undefined,
             });
-            navigate(`/events/${data.event._id}`);
+            navigate(`/events/${id}`);
         } catch (err: any) {
-            setError(err.response?.data?.message || "Erreur lors de la création de l'événement");
+            setError(err.response?.data?.message || "Erreur lors de la sauvegarde");
         } finally {
-            setLoading(false);
+            setSaving(false);
         }
     };
+
+    if (loading) return <div className="loading">Chargement...</div>;
 
     return (
         <div className="page-container page-narrow">
             <div className="page-header">
-                <h1>Créer un événement</h1>
+                <div>
+                    <Link to={`/events/${id}`} className="back-link">
+                        ← Détails de l'événement
+                    </Link>
+                    <h1>Modifier l'événement</h1>
+                </div>
             </div>
 
             {error && <div className="alert alert-error">{error}</div>}
 
             <form onSubmit={handleSubmit} noValidate className="form-card">
-                {/* Title */}
                 <div className="form-group">
                     <label htmlFor="title">Titre *</label>
                     <input
@@ -94,24 +105,20 @@ const CreateEvent: React.FC = () => {
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         required
-                        placeholder="Nom de l'événement"
                         maxLength={100}
                     />
                 </div>
 
-                {/* Description */}
                 <div className="form-group">
                     <label htmlFor="description">Description</label>
                     <textarea
                         id="description"
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
-                        placeholder="Description optionnelle"
                         rows={3}
                     />
                 </div>
 
-                {/* Date range */}
                 <div className="form-row">
                     <div className="form-group">
                         <label htmlFor="startDateRange">Date de début *</label>
@@ -136,40 +143,40 @@ const CreateEvent: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Invite friends */}
-                {friends.length > 0 && (
+                <div className="form-group">
+                    <label htmlFor="status">Statut</label>
+                    <select
+                        id="status"
+                        value={status}
+                        onChange={(e) => setStatus(e.target.value as Event['status'])}
+                    >
+                        <option value="planning">En planification</option>
+                        <option value="voting">Vote en cours</option>
+                        <option value="confirmed">Confirmé</option>
+                        <option value="cancelled">Annulé</option>
+                    </select>
+                </div>
+
+                {status === 'confirmed' && (
                     <div className="form-group">
-                        <label>Inviter des amis</label>
-                        <div className="friends-checklist">
-                            {friends.map((friend) => {
-                                const friendId = (friend as any)._id ?? friend.id;
-                                const inputId = `friend-${friendId}`;
-                                return (
-                                    <label key={friendId} htmlFor={inputId} className="checkbox-label">
-                                        <input
-                                            id={inputId}
-                                            type="checkbox"
-                                            checked={selectedFriendIds.includes(friendId)}
-                                            onChange={() => toggleFriend(friendId)}
-                                        />
-                                        {friend.username}
-                                    </label>
-                                );
-                            })}
-                        </div>
+                        <label htmlFor="finalDate">Date retenue</label>
+                        <input
+                            id="finalDate"
+                            type="date"
+                            value={finalDate}
+                            onChange={(e) => setFinalDate(e.target.value)}
+                            min={startDateRange}
+                            max={endDateRange}
+                        />
                     </div>
                 )}
 
                 <div className="form-actions">
-                    <button
-                        type="button"
-                        className="btn btn-secondary"
-                        onClick={() => navigate('/events')}
-                    >
+                    <Link to={`/events/${id}`} className="btn btn-secondary">
                         Annuler
-                    </button>
-                    <button type="submit" className="btn btn-primary" disabled={loading}>
-                        {loading ? 'Création en cours...' : "Créer l'événement"}
+                    </Link>
+                    <button type="submit" className="btn btn-primary" disabled={saving}>
+                        {saving ? 'Enregistrement...' : 'Enregistrer les modifications'}
                     </button>
                 </div>
             </form>
@@ -177,4 +184,4 @@ const CreateEvent: React.FC = () => {
     );
 };
 
-export default CreateEvent;
+export default EditEvent;
