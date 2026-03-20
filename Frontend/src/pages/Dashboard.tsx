@@ -61,7 +61,7 @@ const Dashboard: React.FC = () => {
         <div className="page-container">
             {/* Header */}
             <div className="page-header">
-                <h1>Bonjour, {user?.username} 👋</h1>
+                <h1>Tableau de bord de {user?.username} </h1>
                 <Link to="/events/create" className="btn btn-primary">
                     + Créer un événement
                 </Link>
