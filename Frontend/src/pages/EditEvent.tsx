@@ -31,8 +31,12 @@ const EditEvent: React.FC = () => {
             const event: Event = data;
 
             // Check creator
-            const creatorId = (event.creator as any)?._id ?? event.creator?.id;
-            if (user?.id !== creatorId) {
+            const userData = user as any;
+            const userId = userData?._id || userData?.id;
+            const creatorData = event.creator as any;
+            const creatorId = creatorData?._id || creatorData?.id;
+
+            if (userId !== creatorId) {
                 navigate(`/events/${eventId}`);
                 return;
             }
