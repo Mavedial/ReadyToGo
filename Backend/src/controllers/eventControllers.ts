@@ -218,6 +218,11 @@ export const inviteUsers = async (req: AuthRequest, res: Response) => {
         if (!userIds || !Array. isArray(userIds) || userIds.length === 0) {
             return res.status(400).json({ message: 'userIds requis (array)' });
         }
+        const validUserIds = userIds.filter((id: any) => id !== null && id !== undefined);
+
+        if (validUserIds.length === 0) {
+            return res.status(400).json({ message: 'Aucun ID utilisateur valide' });
+        }
 
         const event = await Event.findById(id);
 

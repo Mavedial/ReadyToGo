@@ -25,11 +25,15 @@ const CreateEvent: React.FC = () => {
     const loadFriends = async () => {
         try {
             const { data } = await friendAPI.getFriends();
-            // getFriends returns Friendship[]; extract the other user from each friendship
-            const friendUsers: User[] = (data as any[]).map((f) => {
-                const reqId = f.requester?._id ?? f.requester?.id;
-                return reqId === currentUser?.id ? f.recipient : f.requester;
-            }).filter(Boolean);
+
+            const friendUsers: User[] = (data as any[])
+                .map((f) => {
+                    const reqId = f.requester?._id ?? f.requester?.id;
+                    const user = reqId === currentUser?.id ? f.recipient : f.requester;
+                    console.log('🔍 User extrait:', user, 'ID:', user?.id, 'user._id:', (user as any)?._id);
+                    return user;
+                })
+                .filter((f) => f !== null && f !== undefined);
             setFriends(friendUsers);
         } catch {
             // Friends list is optional – silently fail
@@ -37,9 +41,16 @@ const CreateEvent: React.FC = () => {
     };
 
     const toggleFriend = (id: string) => {
-        setSelectedFriendIds((prev) =>
-            prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-        );
+        if (!id) {
+            console.warn('⚠️ ID vide!');
+            return;
+        }
+        setSelectedFriendIds((prev) => {
+            const newState = prev.includes(id)
+                ? prev.filter((x) => x !== id)
+                : [...prev, id];
+            return newState;
+        });
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -58,7 +69,6 @@ const CreateEvent: React.FC = () => {
             setError('La date de début doit être antérieure à la date de fin');
             return;
         }
-
         setLoading(true);
         try {
             const { data } = await eventAPI.createEvent({
@@ -66,7 +76,7 @@ const CreateEvent: React.FC = () => {
                 description: description.trim(),
                 startDateRange,
                 endDateRange,
-                invitedUserIds: selectedFriendIds,
+                userIds: selectedFriendIds,
             });
             navigate(`/events/${data.event._id}`);
         } catch (err: any) {
@@ -142,7 +152,9 @@ const CreateEvent: React.FC = () => {
                         <label>Inviter des amis</label>
                         <div className="friends-checklist">
                             {friends.map((friend) => {
-                                const friendId = (friend as any)._id ?? friend.id;
+                                const friendId = (friend as any)._id || friend.id;
+                                if (!friendId) return null;
+
                                 const inputId = `friend-${friendId}`;
                                 return (
                                     <label key={friendId} htmlFor={inputId} className="checkbox-label">

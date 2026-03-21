@@ -79,6 +79,10 @@ const Friends: React.FC = () => {
     };
 
     const handleSendRequest = async (recipientId: string) => {
+        if (!recipientId) {
+            setError('ID utilisateur invalide');
+            return;
+        }
         setSendingRequest(recipientId);
         setError('');
         try {
@@ -247,20 +251,25 @@ const Friends: React.FC = () => {
 
                     {searchResults.length > 0 && (
                         <ul className="list" style={{ marginTop: '1rem' }}>
-                            {searchResults.map((u) => (
-                                <li key={u.id} className="list-item">
-                                    <span className="list-item-name">{u.username}</span>
-                                    <button
-                                        className="btn btn-primary btn-sm"
-                                        onClick={() => handleSendRequest(u.id)}
-                                        disabled={sendingRequest === u.id}
-                                    >
-                                        {sendingRequest === u.id
-                                            ? 'Envoi...'
-                                            : 'Ajouter'}
-                                    </button>
-                                </li>
-                            ))}
+                            {searchResults.map((u) => {
+                                const userId = (u as any)._id || u.id;
+
+                                return (
+                                    <li key={userId} className="list-item">
+                                        <span className="list-item-name">{u.username}</span>
+                                        <button
+                                            className="btn btn-primary btn-sm"
+                                            onClick={() => {
+                                                handleSendRequest(userId);
+                                            }}
+                                        >
+                                            {sendingRequest === userId
+                                                ? 'Envoi...'
+                                                : 'Ajouter'}
+                                        </button>
+                                    </li>
+                                );
+                            })}
                         </ul>
                     )}
                 </div>

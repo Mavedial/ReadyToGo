@@ -12,6 +12,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cors())
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -20,7 +21,7 @@ app.use('/api/events', eventsRoutes);
 app.use('/api/availabilities', availabilityRoutes);
 
 app.get('/', (req, res) => {
-    res.json({ message: '🚀 ReadyToGo API est en fonction !' });
+    res.json({ message: 'ReadyToGo API est en fonction !' });
 });
 
 app.use((req, res) => {

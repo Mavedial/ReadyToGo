@@ -294,18 +294,21 @@ const EventDetails: React.FC = () => {
                             </div>
                             {searchResults.length > 0 && (
                                 <ul className="search-results">
-                                    {searchResults.map((u) => (
-                                        <li key={u.id} className="search-result-item">
-                                            <span>{u.username}</span>
-                                            <button
-                                                className="btn btn-primary btn-sm"
-                                                onClick={() => handleInvite(u.id)}
-                                                disabled={inviting}
-                                            >
-                                                Inviter
-                                            </button>
-                                        </li>
-                                    ))}
+                                    {searchResults.map((u) => {
+                                        const userId = (u as any)._id || u.id;
+                                        return (
+                                            <li key={userId} className="search-result-item">
+                                                <span>{u.username}</span>
+                                                <button
+                                                    className="btn btn-primary btn-sm"
+                                                    onClick={() => handleInvite(userId)}
+                                                    disabled={inviting}
+                                                >
+                                                    Inviter
+                                                </button>
+                                            </li>
+                                        );
+                                    })}
                                 </ul>
                             )}
                         </div>
