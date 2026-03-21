@@ -55,7 +55,12 @@ const SubmitAvailability: React.FC = () => {
         setSubmitting(true);
 
         try {
-            const dateStrings = selectedDates.map((d) => d.toISOString());
+            const dateStrings = selectedDates.map((d) => {
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            });
             await availabilityAPI.submitAvailability(event._id, dateStrings);
             setSuccess('Disponibilités enregistrées avec succès !');
             setTimeout(() => navigate(`/events/${event._id}`), 1500);

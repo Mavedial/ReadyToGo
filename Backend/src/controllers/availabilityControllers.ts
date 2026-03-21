@@ -37,9 +37,17 @@ export const submitAvailability = async (req: AuthRequest, res: Response) => {
         // Retourne true si au moins 1 élément correspond
         // Retourne false si aucun élément ne correspond
 
-        // Convertir les dates en objets Date
-        const dates = availableDates.map((d: string) => new Date(d));
-
+        // Convertir les dates en objets Date et normaliser à minuit UTC
+        const dates = availableDates.map((d: string) => {
+            // d est au format YYYY-MM-DD
+            const parts = d.split('-');
+            return new Date(Date.UTC(
+                parseInt(parts[0]),
+                parseInt(parts[1]) - 1,
+                parseInt(parts[2]),
+                0, 0, 0
+            ));
+        });
         // Upsert (créer ou mettre à jour)
         const availability = await Availability.findOneAndUpdate(
             { event:  eventId, user: userId },
@@ -153,18 +161,25 @@ export const calculateBestDate = async (req: AuthRequest, res: Response) => {
             });
         }
 
-        // 🤖 ALGORITHME : Compter combien de personnes sont disponibles par date
-        const dateCount:  Map<string, number> = new Map();
+        // ALGORITHME : Compter combien de personnes sont disponibles par date
+        const dateCount: Map<string, number> = new Map();
 
+        // Convertir les dates de l'événement en strings YYYY-MM-DD (UTC)
+        const eventStartStr = event.startDateRange.toISOString().split('T')[0];
+        const eventEndStr = event.endDateRange.toISOString().split('T')[0];
         availabilities.forEach(avail => {
             avail.availableDates.forEach(date => {
-                const dateKey = date.toISOString().split('T')[0]; // Format YYYY-MM-DD
-                dateCount.set(dateKey, (dateCount.get(dateKey) || 0) + 1);
+                const dateStr = new Date(date).toISOString().split('T')[0];
+                // Vérifier que la date est DANS la plage (inclusivement)
+                if (dateStr >= eventStartStr && dateStr <= eventEndStr) {
+                    dateCount.set(dateStr, (dateCount.get(dateStr) || 0) + 1);
+                } else {
+                }
             });
         });
 
-        // Trouver la date avec le maximum de participants
-        let bestDate:  string | null = null;
+// Trouver la date avec le maximum de participants
+        let bestDate: string | null = null;
         let maxCount = 0;
 
         dateCount.forEach((count, date) => {

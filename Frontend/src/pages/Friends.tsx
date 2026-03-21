@@ -96,10 +96,14 @@ const Friends: React.FC = () => {
         }
     };
 
-    // Return the other side of a Friendship relative to the current user
     const getFriendUser = (f: Friendship): User | undefined => {
-        const reqId = (f.requester as any)?._id ?? f.requester?.id;
-        return reqId === currentUser?.id ? f.recipient : f.requester;
+        const requesterData = f.requester as any;
+        const reqId = requesterData?._id || requesterData?.id;
+
+        const currentUserId = (currentUser as any)?._id || currentUser?.id;
+
+        // Comparer les IDs
+        return reqId === currentUserId ? f.recipient : f.requester;
     };
 
     if (loading) return <div className="loading">Chargement...</div>;

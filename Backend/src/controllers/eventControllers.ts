@@ -11,7 +11,8 @@ import mongoose from 'mongoose';
 export const createEvent = async (req:  AuthRequest, res: Response) => {
     try {
         const creatorId = req.user?.id;
-        const { title, description, startDateRange, endDateRange, invitedUserIds } = req.body;
+        const { title, description, startDateRange, endDateRange, userIds  } = req.body;
+        const invitedUserIds = userIds;
 
         if (!creatorId) {
             return res.status(401).json({ message: 'Non authentifié' });
@@ -24,22 +25,34 @@ export const createEvent = async (req:  AuthRequest, res: Response) => {
         }
 
         // Vérifier que les dates sont valides
-        const start = new Date(startDateRange);
-        const end = new Date(endDateRange);
+        // Créer les dates en UTC à minuit pour éviter les décalages de timezone
+        const start = new Date(Date.UTC(
+            parseInt(startDateRange.split('-')[0]),
+            parseInt(startDateRange.split('-')[1]) - 1,
+            parseInt(startDateRange.split('-')[2]),
+            0, 0, 0
+        ));
+
+        const end = new Date(Date.UTC(
+            parseInt(endDateRange.split('-')[0]),
+            parseInt(endDateRange.split('-')[1]) - 1,
+            parseInt(endDateRange.split('-')[2]),
+            0, 0, 0
+        ));
 
         if (start >= end) {
-            return res. status(400).json({
+            return res.status(400).json({
                 message: 'startDateRange doit être avant endDateRange'
             });
         }
 
-        // Créer l'événement
+// Créer l'événement
         const event = await Event.create({
             title,
             description,
             creator: creatorId,
-            startDateRange:  start,
-            endDateRange:  end,
+            startDateRange: start,
+            endDateRange: end,
             status: 'planning',
             invitedUsers: invitedUserIds || [],
             participants: [creatorId] // Le créateur est automatiquement participant
@@ -47,7 +60,7 @@ export const createEvent = async (req:  AuthRequest, res: Response) => {
 
         // Créer les invitations
         if (invitedUserIds && Array.isArray(invitedUserIds)) {
-            const invitations = invitedUserIds.map((userId:  string) => ({
+            const invitations = invitedUserIds.map((userId: string) => ({
                 event: event._id,
                 invitedUser: userId,
                 invitedBy: creatorId,

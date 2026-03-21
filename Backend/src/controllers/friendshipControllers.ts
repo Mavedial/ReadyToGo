@@ -124,21 +124,14 @@ export const getFriends = async (req: AuthRequest, res: Response) => {
         const friendships = await Friendship.find({
             $or: [
                 { requester: userId, status: 'accepted' },
-                { recipient: userId, status:  'accepted' }
+                { recipient: userId, status: 'accepted' }
             ]
         })
             .populate('requester', 'username email avatar')
             .populate('recipient', 'username email avatar');
 
-        // Extraire les amis (l'autre personne dans la relation)
-        const friends = friendships.map(f => {
-            if (f.requester._id.toString() === userId) {
-                return f.recipient;
-            }
-            return f.requester;
-        });
-
-        return res.json(friends);
+// Retourner les Friendships complètes, pas juste les users
+        return res.json(friendships);
     } catch (error) {
         logger.error('getFriends error:', error);
         return res. status(500).json({ message: 'Erreur serveur' });

@@ -28,10 +28,11 @@ const CreateEvent: React.FC = () => {
 
             const friendUsers: User[] = (data as any[])
                 .map((f) => {
-                    const reqId = f.requester?._id ?? f.requester?.id;
-                    const user = reqId === currentUser?.id ? f.recipient : f.requester;
-                    console.log('🔍 User extrait:', user, 'ID:', user?.id, 'user._id:', (user as any)?._id);
-                    return user;
+                    const reqId = (f.requester as any)?._id || f.requester?.id;
+                    const currentUserId = (currentUser as any)?._id || currentUser?.id;
+
+                    // Retourner l'ami (l'autre personne dans la relation)
+                    return reqId === currentUserId ? f.recipient : f.requester;
                 })
                 .filter((f) => f !== null && f !== undefined);
             setFriends(friendUsers);
@@ -42,7 +43,7 @@ const CreateEvent: React.FC = () => {
 
     const toggleFriend = (id: string) => {
         if (!id) {
-            console.warn('⚠️ ID vide!');
+            console.warn(' ID vide!');
             return;
         }
         setSelectedFriendIds((prev) => {

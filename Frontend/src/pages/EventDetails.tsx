@@ -109,8 +109,13 @@ const EventDetails: React.FC = () => {
         );
     if (!event) return null;
 
-    const creatorId = (event.creator as any)?._id ?? event.creator?.id;
-    const isCreator = user?.id === creatorId;
+    const creatorData = event.creator as any;
+    const creatorId = creatorData?._id || creatorData?.id;
+
+    const userData = user as any;
+    const userId = userData?._id || userData?.id;
+
+    const isCreator = userId === creatorId;
     const alreadyParticipant = event.participants.some(
         (p) => (p as any)._id === user?.id || p.id === user?.id
     );
@@ -211,7 +216,7 @@ const EventDetails: React.FC = () => {
                     {event.invitedUsers.length > 0 && (
                         <div className="card">
                             <h2 className="card-title">
-                                Invités en attente ({event.invitedUsers.length})
+                                Invités ({event.invitedUsers.length})
                             </h2>
                             <ul className="user-list">
                                 {event.invitedUsers.map((u) => (
