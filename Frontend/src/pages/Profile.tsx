@@ -52,20 +52,20 @@ const Profile: React.FC = () => {
                 <h2 className="card-title">Informations du compte</h2>
                 <dl className="detail-list">
                     <div className="detail-row">
-                        <dt className="detail-label">Rôle</dt>
-                        <dd>
+                        <dt className="detail-label"><b>Rôle</b></dt>
+                        <dd><em>
                             <span className={`badge badge-role-${user?.role ?? 'user'}`}>
                                 {user?.role === 'admin' ? 'Administrateur' : 'Utilisateur'}
                             </span>
-                        </dd>
+                        </em></dd>
                     </div>
                     <div className="detail-row">
-                        <dt className="detail-label">Membre depuis</dt>
-                        <dd>
+                        <dt className="detail-label"><b>Membre depuis</b></dt>
+                        <dd><em>
                             {user?.createdAt
                                 ? new Date(user.createdAt).toLocaleDateString('fr-FR')
                                 : '—'}
-                        </dd>
+                        </em></dd>
                     </div>
                 </dl>
             </div>
@@ -101,7 +101,7 @@ const Profile: React.FC = () => {
 
             {/* Danger zone */}
             <div className="card card-danger">
-                <h2 className="card-title">Zone de danger</h2>
+                <h2 className="card-title">Déconnexion</h2>
                 <p className="text-muted">
                     Se déconnecter de votre compte sur cet appareil.
                 </p>
