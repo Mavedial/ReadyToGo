@@ -39,6 +39,23 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ message: 'Non authentifié' });
         }
 
+        if (email) {
+            // Vérifier format email
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                return res.status(400).json({ message: 'Format d\'email invalide' });
+            }
+
+            // Vérifier que l'email n'est pas déjà utilisé
+            const existingEmail = await User.findOne({
+                email,
+                _id: { $ne: userId }
+            });
+            if (existingEmail) {
+                return res.status(400).json({ message: 'Cet email est déjà utilisé par un autre utilisateur' });
+            }
+        }
+
         // Vérifier si username/email déjà pris par un autre user
         if (username) {
             const existingUser = await User.findOne({
@@ -50,21 +67,23 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
             }
         }
 
-        if (email) {
-            const existingEmail = await User.findOne({
-                email,
-                _id: { $ne: userId }
-            });
-            if (existingEmail) {
-                return res.status(400).json({ message: 'Email déjà utilisé' });
-            }
-        }
+        const user = await User.findById(userId);
+        const oldEmail = user?.email;
 
         const updatedUser = await User.findByIdAndUpdate(
             userId,
             { username, email, avatar },
             { new: true, runValidators: true }
         ).select('-password');
+
+        if (email && email !== oldEmail) {
+            logger.info(`========== CHANGEMENT D'EMAIL ==========`);
+            logger.info(`UserID: ${userId}`);
+            logger.info(`Ancien email: ${oldEmail}`);
+            logger.info(`Nouvel email: ${email}`);
+            logger.info(`Timestamp: ${new Date().toISOString()}`);
+            logger.info(`========================================`);
+        }
 
         logger.info(`Profil mis à jour pour userId: ${userId}`);
         return res.json({ message: 'Profil mis à jour', user: updatedUser });

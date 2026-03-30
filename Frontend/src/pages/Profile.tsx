@@ -4,14 +4,26 @@ import { userAPI } from '../services/api';
 
 const Profile: React.FC = () => {
     const { user, logout } = useAuth();
-    const [username, setUsername] = useState(user?.username ?? '');
+    const [username, setUsername] = useState(user?.username ?? '')
+    const [email, setEmail] = useState(user?.email ?? '');
+    const [newEmail, setNewEmail] = useState('');
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
+    const [isEditingEmail, setIsEditingEmail] = useState(false);
+    const [emailError, setEmailError] = useState('');
+    const [emailSuccess, setEmailSuccess] = useState('');
+
     useEffect(() => {
-        if (user) setUsername(user.username);
+        if (user) {setUsername(user.username);
+        setEmail(user.email);}
     }, [user]);
+
+    const isValidEmail = (emailToValidate: string): boolean => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(emailToValidate);
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -59,6 +71,48 @@ const Profile: React.FC = () => {
         }
     };
 
+    const handleEmailChange = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setEmailError('');
+        setEmailSuccess('');
+
+        if (!newEmail.trim()) {
+            setEmailError('Veuillez entrer une nouvelle adresse email');
+            return;
+        }
+
+        if (!isValidEmail(newEmail)) {
+            setEmailError('Veuillez entrer une adresse email valide');
+            return;
+        }
+
+        if (newEmail === email) {
+            setEmailError('La nouvelle adresse email est la même que l\'actuelle');
+            return;
+        }
+
+        setSaving(true);
+        try {
+            setEmailSuccess('Email mis à jour avec succès !');
+            setEmail(newEmail);
+            setNewEmail('');
+            setIsEditingEmail(false);
+        } catch (err: any) {
+            setEmailError(
+                err.response?.data?.message || 'Erreur lors de la mise à jour de l\'email'
+            );
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    // Annuler l'édition d'email
+    const handleCancelEmailEdit = () => {
+        setIsEditingEmail(false);
+        setNewEmail('');
+        setEmailError('');
+    };
+
     const handleExportData = async () => {
         try {
             const { data } = await userAPI.exportUserData();
@@ -88,7 +142,17 @@ const Profile: React.FC = () => {
                 <dl className="detail-list">
                     <div className="detail-row">
                         <dt className="detail-label"><b>Email</b></dt>
-                        <dd>{user?.email}</dd>
+                        <dd>
+                            {email}
+                            <button
+                                type="button"
+                                className="btn btn-sm btn-secondary"
+                                onClick={() => setIsEditingEmail(true)}
+                                style={{ marginLeft: '10px' }}
+                                disabled={isEditingEmail}
+                            > Modifier
+                            </button>
+                        </dd>
                     </div>
                     <div className="detail-row">
                         <dt className="detail-label"><b>Membre depuis</b></dt>
@@ -100,6 +164,60 @@ const Profile: React.FC = () => {
                     </div>
                 </dl>
             </div>
+
+            {/* Section Modification d'email */}
+            {isEditingEmail && (
+                <div className="card" style={{ backgroundColor: '#f0f8ff', borderLeft: '4px solid #007bff' }}>
+                    <h3 className="card-title">Changer mon adresse email</h3>
+
+                    {emailError && <div className="alert alert-error">{emailError}</div>}
+                    {emailSuccess && <div className="alert alert-success">{emailSuccess}</div>}
+
+                    <form onSubmit={handleEmailChange} noValidate>
+                        <div className="form-group">
+                            <label htmlFor="currentEmail">Email actuel</label>
+                            <input
+                                id="currentEmail"
+                                type="email"
+                                value={email}
+                                disabled
+                                style={{ backgroundColor: '#f0f0f0', cursor: 'not-allowed' }}
+                            />
+                        </div>
+
+                        <div className="form-group">
+                            <label htmlFor="newEmail">Nouvelle adresse email</label>
+                            <input
+                                id="newEmail"
+                                type="email"
+                                value={newEmail}
+                                onChange={(e) => setNewEmail(e.target.value)}
+                                placeholder="nouvelEmail@exemple.com"
+                                required
+                                autoComplete="email"
+                            />
+                        </div>
+
+                        <div className="form-actions">
+                            <button
+                                type="submit"
+                                className="btn btn-primary"
+                                disabled={saving || !newEmail.trim()}
+                            >
+                                {saving ? 'Mise à jour...' : 'Confirmer le changement'}
+                            </button>
+                            <button
+                                type="button"
+                                className="btn btn-secondary"
+                                onClick={handleCancelEmailEdit}
+                                disabled={saving}
+                            >
+                                Annuler
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            )}
 
             {/* Edit form */}
             <div className="card">
