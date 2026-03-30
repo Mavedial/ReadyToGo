@@ -38,6 +38,7 @@ export const userAPI = {
     updateProfile: (data: any) => api.put('/users/me', data),
     getUserById: (id: string) => api.get(`/users/${id}`),
     searchUsers: (query: string) => api.get(`/users/search?q=${query}`),
+    deleteAccount: () => api.delete('/users/me'),
 };
 
 // ===== FRIENDS =====

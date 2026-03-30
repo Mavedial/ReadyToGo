@@ -124,19 +124,19 @@ const Friends: React.FC = () => {
             {/* Tabs */}
             <div className="tabs">
                 <button
-                    className={`tab-btn${tab === 'friends' ? ' active' : ''}`}
+                    className={`btn${tab === 'friends' ? ' active' : ''}`}
                     onClick={() => setTab('friends')}
                 >
                     Mes amis ({friends.length})
                 </button>
                 <button
-                    className={`tab-btn${tab === 'pending' ? ' active' : ''}`}
+                    className={`btn${tab === 'pending' ? ' active' : ''}`}
                     onClick={() => setTab('pending')}
                 >
                     Demandes ({pendingRequests.length})
                 </button>
                 <button
-                    className={`tab-btn${tab === 'search' ? ' active' : ''}`}
+                    className={`btn${tab === 'search' ? ' active' : ''}`}
                     onClick={() => setTab('search')}
                 >
                     Rechercher

@@ -52,13 +52,13 @@ const Events: React.FC = () => {
 
             {error && <div className="alert alert-error">{error}</div>}
 
-            {/* Filters */}
+
             <div className="filter-bar">
                 {(['all', 'planning', 'voting', 'confirmed', 'cancelled'] as StatusFilter[]).map(
                     (s) => (
                         <button
                             key={s}
-                            className={`filter-btn${filter === s ? ' active' : ''}`}
+                            className={`btn${filter === s ? ' active' : ''}`}
                             onClick={() => setFilter(s)}
                         >
                             {s === 'all'

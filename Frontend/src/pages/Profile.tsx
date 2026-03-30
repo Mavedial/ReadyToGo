@@ -38,6 +38,27 @@ const Profile: React.FC = () => {
         }
     };
 
+    const handleDeleteAccount = async () => {
+        if (!window.confirm('Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.')) {
+            return;
+        }
+
+        if (!window.confirm('Dernière confirmation : supprimer votre compte définitivement ?')) {
+            return;
+        }
+
+        setSaving(true);
+        setError('');
+        try {
+            await userAPI.deleteAccount();
+            logout();
+            window.location.href = '/login';
+        } catch (err: any) {
+            setError(err.response?.data?.message || 'Erreur lors de la suppression du compte');
+            setSaving(false);
+        }
+    };
+
     return (
         <div className="page-container page-narrow">
             <div className="page-header">
@@ -99,14 +120,13 @@ const Profile: React.FC = () => {
                 </form>
             </div>
 
-            {/* Danger zone */}
             <div className="card card-danger">
-                <h2 className="card-title">Déconnexion</h2>
+                <h2 className="card-title">Supprimer le compte</h2>
                 <p className="text-muted">
-                    Se déconnecter de votre compte sur cet appareil.
+                    <em>En cliquant sur ce bouton vous allez supprimez définitivement votre compte et toutes vos données.</em>
                 </p>
-                <button className="btn btn-danger" onClick={logout}>
-                    Se déconnecter
+                <button className="btn btn-danger" onClick={handleDeleteAccount} disabled={saving}>
+                    {saving ? 'Suppression...' : 'Supprimer mon profil'}
                 </button>
             </div>
         </div>

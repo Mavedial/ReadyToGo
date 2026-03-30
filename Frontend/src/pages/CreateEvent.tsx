@@ -158,14 +158,13 @@ const CreateEvent: React.FC = () => {
 
                                 const inputId = `friend-${friendId}`;
                                 return (
-                                    <label key={friendId} htmlFor={inputId} className="checkbox-label">
+                                    <label key={friendId} htmlFor={inputId} className="checkbox-label">{friend.username}
                                         <input
                                             id={inputId}
                                             type="checkbox"
                                             checked={selectedFriendIds.includes(friendId)}
                                             onChange={() => toggleFriend(friendId)}
                                         />
-                                        {friend.username}
                                     </label>
                                 );
                             })}
