@@ -8,7 +8,11 @@ const MIN_LENGTH = 8;
 //nouvel utilisateur
 export const register = async (req: Request, res: Response) => {
     try{
-        const {username, password, role, consentGiven} = req.body;
+        const {username, email, password, consentGiven} = req.body;
+
+        if (!username || !email || !password) {
+            return res.status(400).json({ message: 'Champs requis manquants' });
+        }
 
         if (!consentGiven) {
             return res.status(400).json({
@@ -26,10 +30,14 @@ export const register = async (req: Request, res: Response) => {
             return res.status(400).json({message : "Le mot de passe doit contenir au minimum 8 caracteres !"})
         }
 
-        const existingUser = await User.findOne({username})
-        if(existingUser){
-            logger.warn(`Tentative d'inscription avec un username déjà existant: ${username}`);
-            return res.status(400).json({message : "Utilisateur déjà existant !"});
+        const existingUser = await User.findOne({
+            $or: [{ username }, { email }]
+        });
+
+        if (existingUser) {
+            return res.status(400).json({
+                message: 'Utilisateur ou email déjà utilisé'
+            });
         }
 
         const salt = await bcrypt.genSalt(10);
@@ -37,15 +45,15 @@ export const register = async (req: Request, res: Response) => {
 
         const newUser = await User.create({
             username,
+            email,
             password : hashedPassword,
-            role : role || "user",
             consentGiven: true,
             consentDate: new Date(),
             consentVersion: '1.0',
             consentAcceptedAt: new Date()
         });
 
-        logger.info(`Nouvel utilisateur crée: ${username} (role: ${role})`);
+        logger.info(`Nouvel utilisateur crée: ${username}`);
         return res.status(201).json({message: "Utilisateur crée", User})
     }
     catch(err){
@@ -80,7 +88,7 @@ export const login = async (req: Request, res: Response) => {
 
         // Créer un token JWT
         const token = jwt.sign(
-        {id:user.id, role: user.role},
+        {id:user.id,},
         process.env.JWT_SECRET!,
             {expiresIn: "7d"}
         );
@@ -90,7 +98,7 @@ export const login = async (req: Request, res: Response) => {
         return res.json({
             message : "Connexion réussie !",
             token,
-            user : {id: user._id, username: user.username, role : user.role},
+            user : {id: user._id, username: user.username},
         });
     }
     catch(err){

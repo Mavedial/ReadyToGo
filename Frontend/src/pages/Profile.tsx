@@ -83,25 +83,12 @@ const Profile: React.FC = () => {
             {error && <div className="alert alert-error">{error}</div>}
             {success && <div className="alert alert-success">{success}</div>}
 
-            {/* Profile info */}
             <div className="card">
                 <h2 className="card-title">Informations du compte</h2>
                 <dl className="detail-list">
                     <div className="detail-row">
-                        <dt className="detail-label"><b>Rôle</b></dt>
-                        <dd><em>
-                            <span className={`badge badge-role-${user?.role ?? 'user'}`}>
-                                {user?.role === 'admin' ? 'Administrateur' : 'Utilisateur'}
-                            </span>
-                        </em></dd>
-                    </div>
-                    <div className="detail-row">
-                        <dt className="detail-label"><b>Membre depuis</b></dt>
-                        <dd><em>
-                            {user?.createdAt
-                                ? new Date(user.createdAt).toLocaleDateString('fr-FR')
-                                : '—'}
-                        </em></dd>
+                        <dt className="detail-label"><b>Email</b></dt>
+                        <dd>{user?.email}</dd>
                     </div>
                 </dl>
             </div>

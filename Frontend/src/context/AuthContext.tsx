@@ -1,81 +1,66 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import { userAPI } from '../services/api';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { authAPI } from '../services/api';
-import type { User, AuthContextType } from '../types';
+
+export interface User {
+    id: string;
+    username: string;
+    email: string;
+    createdAt: Date;
+}
+
+interface AuthContextType {
+    user: User | null;
+    loading: boolean;
+    login: (username: string, password: string) => Promise<void>;
+    register: (username: string, email: string, password: string) => Promise<void>;
+    logout: () => void;
+}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
-    const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const initAuth = async () => {
-            const savedToken = localStorage.getItem('token');
-            if (savedToken) {
-                try {
-                    // Vérifier le token en récupérant le profil
-                    const { data } = await userAPI.getProfile();
-                    setUser(data);
-                    setToken(savedToken);
-                } catch (error) {
-                    console.error('Token invalide:', error);
-                    localStorage.removeItem('token');
-                    setToken(null);
-                    setUser(null);
-                }
-            }
+        const token = localStorage.getItem('token');
+        if (token) {
+            loadUser();
+        } else {
             setLoading(false);
-        };
-        initAuth();
+        }
     }, []);
+
+    const loadUser = async () => {
+        try {
+            const { data } = await authAPI.getProfile();
+            setUser(data);
+        } catch {
+            localStorage.removeItem('token');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const login = async (username: string, password: string) => {
         const { data } = await authAPI.login(username, password);
-        setToken(data.token);
-        setUser(data.user);
         localStorage.setItem('token', data.token);
+        setUser(data.user);
     };
 
-    const register = async (username: string, email: string, password: string, consentGiven : boolean) => {
-        await authAPI.register(username, email, password, consentGiven);
-        // Auto-login après register
-        await login(username, password);
+    const register = async (username: string, email: string, password: string) => {
+        const { data } = await authAPI.register(username, email, password);
+        localStorage.setItem('token', data.token);
+        setUser(data.user);
     };
 
     const logout = () => {
-        setUser(null);
-        setToken(null);
         localStorage.removeItem('token');
+        setUser(null);
     };
 
-    if (loading) {
-        return (
-            <div style={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                minHeight: '100vh',
-                fontSize: '1.5rem',
-                background: '#f9fafb'  // ← Ajoute un background pour voir
-            }}>
-                Chargement...
-            </div>
-        );
-    }
-
     return (
-        <AuthContext.Provider
-            value={{
-                user,
-                token,
-                login,
-                register,
-                logout,
-                isAuthenticated: !!token,
-            }}
-        >
+        <AuthContext.Provider value={{ user, loading, login, register, logout }}>
             {children}
         </AuthContext.Provider>
     );
