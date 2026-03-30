@@ -122,6 +122,16 @@ export const deleteAccount = async (req: AuthRequest, res: Response) => {
         if (!userId) {
             return res.status(401).json({ message: 'Non authentifié' });
         }
+        await Event.updateMany(
+            { participants: userId },
+            { $pull: { participants: userId } }
+        );
+
+        // Retirer l'utilisateur des listes d'invités
+        await Event.updateMany(
+            { invitedUsers: userId },
+            { $pull: { invitedUsers: userId } }
+        );
 
         console.log('Suppression du compte:', userId);
 
@@ -146,6 +156,13 @@ export const deleteAccount = async (req: AuthRequest, res: Response) => {
                 { recipient: userId }
             ]
         });
+
+        /* Logger la suppression complète pour traçabilité */
+        logger.info(`========== RGPD - SUPPRESSION DE COMPTE ==========`);
+        logger.info(`UserID supprimé: ${userId}`);
+        logger.info(`Timestamp: ${new Date().toISOString()}`);
+        logger.info(`Raison: Exercice du droit à l'oubli (Article 17 RGPD)`);
+        logger.info(`=================================================`);
 
         // Supprimer l'utilisateur
         await User.findByIdAndDelete(userId);
@@ -180,6 +197,11 @@ export const exportUserData = async (req: AuthRequest, res: Response) => {
         };
 
         logger.info(`Données exportées pour: ${userId}`);
+        logger.info(`========== RGPD - EXPORT DE DONNÉES ==========`);
+        logger.info(`UserID: ${userId}`);
+        logger.info(`Timestamp: ${new Date().toISOString()}`);
+        logger.info(`Raison: Exercice du droit à la portabilité (Article 20 RGPD)`);
+        logger.info(`=============================================`);
         res.json(userData);
     } catch (error) {
         logger.error('exportUserData error:', error);

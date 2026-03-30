@@ -31,7 +31,7 @@ const Legal: React.FC = () => {
 
                 <h2>Propriété Intellectuelle</h2>
                 <p>
-                    Tous les contenus de l'Application (textes, images, logos) sont
+                    Tous les contenus de l'Application (textes...) sont
                     protégés par les droits d'auteur.
                 </p>
             </div>
