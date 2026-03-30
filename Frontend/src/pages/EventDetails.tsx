@@ -55,6 +55,16 @@ const EventDetails: React.FC = () => {
         }
     };
 
+    const handleLeaveEvent = async () => {
+        if (!event || !window.confirm('Êtes-vous sûr de vouloir quitter cet événement ?')) return;
+        try {
+            await eventAPI.leaveEvent(event._id);
+            navigate('/events');
+        } catch {
+            setActionError('Erreur lors de la suppression de l\'événement');
+        }
+    };
+
     const handleSearchUsers = async () => {
         if (!inviteQuery.trim()) return;
         setSearching(true);
@@ -247,6 +257,16 @@ const EventDetails: React.FC = () => {
                             >
                                 Soumettre mes disponibilités
                             </Link>
+                        </div>
+                    )}
+                    {alreadyParticipant && !isCreator && event.status !== 'cancelled' && (
+                        <div className="card">
+                            <button
+                                className="btn btn-danger btn-block"
+                                onClick={handleLeaveEvent}
+                            >
+                                Quitter l'événement
+                            </button>
                         </div>
                     )}
 

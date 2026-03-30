@@ -365,3 +365,45 @@ export const getPendingInvitations = async (req: AuthRequest, res: Response) => 
         return res.status(500).json({ message: 'Erreur serveur' });
     }
 };
+
+// DELETE /api/events/:id/leave - Quitter un événement
+export const leaveEvent = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.user?.id;
+        const { id } = req.params;
+
+        if (!userId) {
+            return res.status(401).json({ message: 'Non authentifié' });
+        }
+
+        const event = await Event.findById(id);
+
+        if (!event) {
+            return res.status(404).json({ message: 'Événement non trouvé' });
+        }
+
+        // Vérifier que l'utilisateur est participant
+        if (!event.participants.includes(new mongoose.Types.ObjectId(userId))) {
+            return res.status(403).json({ message: 'Vous n\'êtes pas participant à cet événement' });
+        }
+
+        // Le créateur ne peut pas quitter son événement
+        if (event.creator.toString() === userId) {
+            return res.status(403).json({ message: 'Le créateur ne peut pas quitter son événement' });
+        }
+
+        // Retirer l'utilisateur de la liste des participants
+        event.participants = event.participants.filter(
+            (p: any) => p.toString() !== userId
+        );
+
+        await event.save();
+
+        logger.info(`Utilisateur ${userId} a quitté l'événement ${id}`);
+
+        return res.json({ message: 'Vous avez quitté l\'événement' });
+    } catch (error) {
+        logger.error('leaveEvent error:', error);
+        return res.status(500).json({ message: 'Erreur serveur' });
+    }
+};

@@ -90,6 +90,14 @@ const Profile: React.FC = () => {
                         <dt className="detail-label"><b>Email</b></dt>
                         <dd>{user?.email}</dd>
                     </div>
+                    <div className="detail-row">
+                        <dt className="detail-label"><b>Membre depuis</b></dt>
+                        <dd><em>
+                            {user?.createdAt
+                                ? new Date(user.createdAt).toLocaleDateString('fr-FR')
+                                : '—'}
+                        </em></dd>
+                    </div>
                 </dl>
             </div>
 

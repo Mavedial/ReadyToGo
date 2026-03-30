@@ -64,6 +64,7 @@ export const eventAPI = {
     getPendingInvitations: () => api.get('/events/invitations/pending'),
     respondToInvitation: (invitationId: string, action: 'accepted' | 'declined') =>
         api.put(`/events/invitations/${invitationId}/respond`, { action }),
+    leaveEvent: (eventId: string) => api.delete(`/events/${eventId}/leave`),
 };
 
 // ===== AVAILABILITIES =====

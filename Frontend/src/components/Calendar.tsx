@@ -77,7 +77,7 @@ const Calendar: React.FC<CalendarProps> = ({
                                     <button
                                         key={day.toISOString()}
                                         type="button"
-                                        className={`calendar-day${selected ? ' selected' : ''}${isToday ? ' today' : ''}`}
+                                        className={`btn${selected ? ' selected' : ''}${isToday ? ' today' : ''}`}
                                         onClick={() => toggleDate(day)}
                                         title={day.toLocaleDateString('fr-FR', {
                                             weekday: 'long',

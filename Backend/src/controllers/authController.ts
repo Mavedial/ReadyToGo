@@ -47,10 +47,10 @@ export const register = async (req: Request, res: Response) => {
             username,
             email,
             password : hashedPassword,
-            consentGiven: true,
-            consentDate: new Date(),
+            consentGiven: consentGiven,
+            consentDate: consentGiven ? new Date() : null,
             consentVersion: '1.0',
-            consentAcceptedAt: new Date()
+            consentAcceptedAt: consentGiven ? new Date() : null
         });
 
         logger.info(`Nouvel utilisateur crée: ${username}`);

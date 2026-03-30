@@ -5,6 +5,7 @@ import {
     getEventById,
     updateEvent,
     deleteEvent,
+    leaveEvent,
     inviteUsers,
     respondToInvitation,
     getPendingInvitations
@@ -27,5 +28,6 @@ router.post('/:id/invite', inviteUsers);
 router.get('/:id', getEventById);
 router.put('/:id', updateEvent);
 router.delete('/:id', deleteEvent);
+router.delete('/:id/leave', leaveEvent);
 
 export default router;
