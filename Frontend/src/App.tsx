@@ -14,6 +14,10 @@ import EventDetails from './pages/EventDetails';
 import SubmitAvailability from './pages/SubmitAvailability';
 import Friends from './pages/Friends';
 import Profile from './pages/Profile';
+import Terms from './pages/Terms';
+import Privacy from './pages/Privacy';
+import Legal from './pages/Legal';
+import Footer from './components/Footer';
 
 import './style.css';
 
@@ -97,8 +101,12 @@ function App() {
                         {/* Redirects */}
                         <Route path="/" element={<Navigate to="/dashboard" replace />} />
                         <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                        <Route path="/terms" element={<Terms />} />
+                        <Route path="/privacy" element={<Privacy />} />
+                        <Route path="/legal" element={<Legal />} />
                     </Routes>
                 </main>
+                <Footer />
             </Router>
         </AuthProvider>
     );

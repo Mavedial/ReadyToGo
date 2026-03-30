@@ -59,6 +59,21 @@ const Profile: React.FC = () => {
         }
     };
 
+    const handleExportData = async () => {
+        try {
+            const { data } = await userAPI.exportUserData();
+            const json = JSON.stringify(data, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `readytogo-data-${new Date().toISOString()}.json`;
+            a.click();
+        } catch (err: any) {
+            setError('Erreur lors de l\'export');
+        }
+    };
+
     return (
         <div className="page-container page-narrow">
             <div className="page-header">
@@ -117,6 +132,9 @@ const Profile: React.FC = () => {
                             {saving ? 'Enregistrement...' : 'Enregistrer'}
                         </button>
                     </div>
+                    <button type="button" className="btn btn-secondary" onClick={handleExportData}>
+                        Télécharger mes données
+                    </button>
                 </form>
             </div>
 

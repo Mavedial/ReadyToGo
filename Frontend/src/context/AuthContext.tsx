@@ -38,8 +38,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem('token', data.token);
     };
 
-    const register = async (username: string, email: string, password: string) => {
-        await authAPI.register(username, email, password);
+    const register = async (username: string, email: string, password: string, consentGiven : boolean) => {
+        await authAPI.register(username, email, password, consentGiven);
         // Auto-login après register
         await login(username, password);
     };

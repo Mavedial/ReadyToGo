@@ -9,6 +9,8 @@ const Register: React.FC = () => {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [consentGiven, setConsentGiven] = useState(false);
+
 
     const { register } = useAuth();
     const navigate = useNavigate();
@@ -33,15 +35,20 @@ const Register: React.FC = () => {
         }
 
         setLoading(true);
+        if (!consentGiven) {
+            setError('Vous devez accepter les conditions');
+            return;
+        }
 
         try {
-            await register(username, email, password);
+            await register(username, email, password, consentGiven);
             navigate('/dashboard');
         } catch (err: any) {
             setError(err.response?.data?.message || "Erreur lors de l'inscription");
         } finally {
             setLoading(false);
         }
+
     };
 
     return (
@@ -110,6 +117,26 @@ const Register: React.FC = () => {
                     <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
                         {loading ? 'Inscription en cours...' : "S'inscrire"}
                     </button>
+                    <div className="form-group">
+                        <label className="checkbox-label">
+                            <input
+                                type="checkbox"
+                                checked={consentGiven}
+                                onChange={(e) => setConsentGiven(e.target.checked)}
+                                required
+                            />
+                            <span>
+            J'accepte les{' '}
+                                <a href="/terms" target="_blank" rel="noopener noreferrer">
+                Conditions d'Utilisation
+            </a>
+                                {' '}et la{' '}
+                                <a href="/privacy" target="_blank" rel="noopener noreferrer">
+                Politique de Confidentialité
+            </a>
+        </span>
+                        </label>
+                    </div>
                 </form>
 
                 <p className="auth-footer">

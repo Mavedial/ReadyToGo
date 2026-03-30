@@ -160,3 +160,29 @@ export const deleteAccount = async (req: AuthRequest, res: Response) => {
         return res.status(500).json({ message: 'Erreur serveur' });
     }
 };
+
+export const exportUserData = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.user?.id;
+
+        if (!userId) {
+            return res.status(401).json({ message: 'Non authentifié' });
+        }
+
+        const userData = {
+            profile: await User.findById(userId).select('-password'),
+            events: await Event.find({ creator: userId }),
+            friendships: await Friendship.find({
+                $or: [{ requester: userId }, { recipient: userId }]
+            }),
+            invitations: await EventInvitation.find({ invitedUser: userId }),
+            availabilities: await Availability.find({ user: userId })
+        };
+
+        logger.info(`Données exportées pour: ${userId}`);
+        res.json(userData);
+    } catch (error) {
+        logger.error('exportUserData error:', error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+};

@@ -8,7 +8,13 @@ const MIN_LENGTH = 8;
 //nouvel utilisateur
 export const register = async (req: Request, res: Response) => {
     try{
-        const {username, password, role} = req.body;
+        const {username, password, role, consentGiven} = req.body;
+
+        if (!consentGiven) {
+            return res.status(400).json({
+                message: 'Vous devez accepter les conditions pour continuer'
+            });
+        }
 
         if(username.length > 20){
             return res.status(400).json({message: "Username doit contenir au maximum 20 caracteres !"})
@@ -32,7 +38,11 @@ export const register = async (req: Request, res: Response) => {
         const newUser = await User.create({
             username,
             password : hashedPassword,
-            role : role || "user"
+            role : role || "user",
+            consentGiven: true,
+            consentDate: new Date(),
+            consentVersion: '1.0',
+            consentAcceptedAt: new Date()
         });
 
         logger.info(`Nouvel utilisateur crée: ${username} (role: ${role})`);

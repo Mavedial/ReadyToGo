@@ -25,8 +25,8 @@ api.interceptors.request.use(
 
 // ===== AUTH =====
 export const authAPI = {
-    register: (username: string, email: string, password: string) =>
-        api.post('/auth/register', { username, email, password }),
+    register: (username: string, email: string, password: string, consentGiven: boolean) =>
+        api.post('/auth/register', { username, email, password, consentGiven }),
 
     login: (username: string, password: string) =>
         api.post('/auth/login', { username, password }),
@@ -39,6 +39,7 @@ export const userAPI = {
     getUserById: (id: string) => api.get(`/users/${id}`),
     searchUsers: (query: string) => api.get(`/users/search?q=${query}`),
     deleteAccount: () => api.delete('/users/me'),
+    exportUserData: () => api.get('/users/me/export'),
 };
 
 // ===== FRIENDS =====
