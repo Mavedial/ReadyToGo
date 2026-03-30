@@ -4,6 +4,9 @@ export interface IUser extends Document {
     username: string;
     email: string;
     password: string;
+    consentGiven: boolean;
+    consentDate?: Date;
+    consentVersion?: string;
     createdAt : Date;
 }
 
@@ -11,11 +14,10 @@ const UserSchema = new Schema({
     username: { type: String, required: true, unique: true },
     email: { type: String, unique: true, required: true },
     password: { type: String, required: true },
-    createdAt: { type: Date, default: Date.now },
     consentGiven: {
         type: Boolean,
-        default: false,
-        required: true
+        required: true,
+        default: false
     },
     consentDate: {
         type: Date,
@@ -25,7 +27,7 @@ const UserSchema = new Schema({
         type: String,
         default: '1.0'
     },
-    consentAcceptedAt: Date
+    createdAt: { type: Date, default: Date.now },
 });
 
 export default mongoose.model<IUser>("User", UserSchema);

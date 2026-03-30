@@ -3,9 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const Register: React.FC = () => {
-    const { register } = useAuth();
-    const navigate = useNavigate();
-
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -13,6 +10,8 @@ const Register: React.FC = () => {
     const [consentGiven, setConsentGiven] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const { register } = useAuth();
+    const navigate = useNavigate();
 
 
 
@@ -43,7 +42,7 @@ const Register: React.FC = () => {
         setLoading(true);
 
         try {
-            await register(username, email, password);
+            await register(username, email, password, consentGiven);
             navigate('/dashboard');
         } catch (err: any) {
             setError(err.response?.data?.message || "Erreur lors de l'inscription");
