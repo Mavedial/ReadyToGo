@@ -30,12 +30,13 @@ export const sendFriendRequest = async (req: AuthRequest, res: Response) => {
             return res.status(404).json({ message: 'Utilisateur non trouvé' });
         }
 
-        // Vérifier si une relation existe déjà (dans les 2 sens)
+        // Vérifier si une relation ACTIVE existe déjà (pending ou accepted seulement)
         const existingFriendship = await Friendship.findOne({
             $or: [
                 { requester: requesterId, recipient: recipientId },
                 { requester: recipientId, recipient: requesterId }
-            ]
+            ],
+            status: { $in: ['pending', 'accepted'] } // ← AJOUT : vérifier seulement les relations actives
         });
 
         if (existingFriendship) {
@@ -44,6 +45,15 @@ export const sendFriendRequest = async (req: AuthRequest, res: Response) => {
                 status: existingFriendship.status
             });
         }
+
+        // Supprimer les anciennes demandes refusées (optionnel mais nettoyage)
+        await Friendship.deleteMany({
+            $or: [
+                { requester: requesterId, recipient: recipientId },
+                { requester: recipientId, recipient: requesterId }
+            ],
+            status: 'rejected'
+        });
 
         // Créer la demande
         const friendship = await Friendship.create({
