@@ -36,7 +36,7 @@ export const sendFriendRequest = async (req: AuthRequest, res: Response) => {
                 { requester: requesterId, recipient: recipientId },
                 { requester: recipientId, recipient: requesterId }
             ],
-            status: { $in: ['pending', 'accepted'] } // ← AJOUT : vérifier seulement les relations actives
+            status: { $in: ['pending', 'accepted'] }
         });
 
         if (existingFriendship) {
@@ -46,7 +46,7 @@ export const sendFriendRequest = async (req: AuthRequest, res: Response) => {
             });
         }
 
-        // Supprimer les anciennes demandes refusées (optionnel mais nettoyage)
+        // Supprimer les anciennes demandes refusées
         await Friendship.deleteMany({
             $or: [
                 { requester: requesterId, recipient: recipientId },

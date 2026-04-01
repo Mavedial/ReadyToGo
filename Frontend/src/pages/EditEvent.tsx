@@ -30,7 +30,6 @@ const EditEvent: React.FC = () => {
             const { data } = await eventAPI.getEventById(eventId);
             const event: Event = data;
 
-            // Check creator
             const userData = user as any;
             const userId = userData?._id || userData?.id;
             const creatorData = event.creator as any;

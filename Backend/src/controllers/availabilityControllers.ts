@@ -32,10 +32,6 @@ export const submitAvailability = async (req: AuthRequest, res: Response) => {
                 message: 'Vous devez être participant pour soumettre vos disponibilités'
             });
         }
-        // .some() est une méthode de tableau qui vérifie si au moins un élément du tableau satisfait une condition.
-        //
-        // Retourne true si au moins 1 élément correspond
-        // Retourne false si aucun élément ne correspond
 
         // Convertir les dates en objets Date et normaliser à minuit UTC
         const dates = availableDates.map((d: string) => {
@@ -48,7 +44,6 @@ export const submitAvailability = async (req: AuthRequest, res: Response) => {
                 0, 0, 0
             ));
         });
-        // Upsert (créer ou mettre à jour)
         const availability = await Availability.findOneAndUpdate(
             { event:  eventId, user: userId },
             {
@@ -170,7 +165,7 @@ export const calculateBestDate = async (req: AuthRequest, res: Response) => {
         availabilities.forEach(avail => {
             avail.availableDates.forEach(date => {
                 const dateStr = new Date(date).toISOString().split('T')[0];
-                // Vérifier que la date est DANS la plage (inclusivement)
+                // Vérifier que la date est dans la plage (inclusivement)
                 if (dateStr >= eventStartStr && dateStr <= eventEndStr) {
                     dateCount.set(dateStr, (dateCount.get(dateStr) || 0) + 1);
                 } else {

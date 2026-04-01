@@ -10,7 +10,7 @@ const startServer = async () => {
     try {
         await connectDB();
         app.listen(PORT, () => {
-            logger.info(`🚀 Serveur démarré sur le port ${PORT}`);
+            logger.info(`==Serveur démarré sur le port ${PORT}==`);
         });
     } catch (err) {
         logger.error('Erreur au démarrage du serveur:', err);
