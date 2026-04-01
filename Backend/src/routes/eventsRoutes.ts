@@ -8,7 +8,8 @@ import {
     leaveEvent,
     inviteUsers,
     respondToInvitation,
-    getPendingInvitations
+    getPendingInvitations,
+    removeParticipant
 } from '../controllers/eventControllers';
 import { verifyToken } from '../middleware/authMiddleware';
 
@@ -29,5 +30,6 @@ router.get('/:id', getEventById);
 router.put('/:id', updateEvent);
 router.delete('/:id', deleteEvent);
 router.delete('/:id/leave', leaveEvent);
+router.delete('/:id/participants/:participantId', removeParticipant);
 
 export default router;

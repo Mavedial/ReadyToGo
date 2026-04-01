@@ -217,7 +217,7 @@ export const deleteEvent = async (req: AuthRequest, res: Response) => {
     }
 };
 
-// POST /api/events/: id/invite - Inviter des utilisateurs
+// POST /api/events/:id/invite - Inviter des utilisateurs
 export const inviteUsers = async (req: AuthRequest, res: Response) => {
     try {
         const userId = req. user?.id;
@@ -251,13 +251,27 @@ export const inviteUsers = async (req: AuthRequest, res: Response) => {
         // Créer les invitations
         const invitations = [];
         for (const invitedUserId of userIds) {
-            // Vérifier que l'user n'est pas déjà invité
-            const existingInvite = await EventInvitation.findOne({
+            // Vérifier que le user n'est pas déjà participant
+            const isAlreadyParticipant = event.participants.includes(new mongoose.Types.ObjectId(invitedUserId));
+
+            if (isAlreadyParticipant) {
+                continue; // Sauter si déjà participant
+            }
+
+            // Vérifier s'il y a une invitation en attente
+            const existingPendingInvite = await EventInvitation.findOne({
                 event: id,
-                invitedUser: invitedUserId
+                invitedUser: invitedUserId,
+                status: 'pending'
             });
 
-            if (!existingInvite) {
+            if (!existingPendingInvite) {
+                // Supprimer les anciennes invitations (declined, accepted si existe)
+                await EventInvitation.deleteOne({
+                    event: id,
+                    invitedUser: invitedUserId
+                });
+
                 invitations.push({
                     event: id,
                     invitedUser: invitedUserId,
@@ -266,8 +280,8 @@ export const inviteUsers = async (req: AuthRequest, res: Response) => {
                 });
 
                 // Ajouter à invitedUsers
-                if (! event.invitedUsers.includes(invitedUserId)) {
-                    event.invitedUsers.push(invitedUserId);
+                if (! event.invitedUsers.includes(new mongoose.Types.ObjectId(invitedUserId))) {
+                    event.invitedUsers.push(new mongoose.Types.ObjectId(invitedUserId));
                 }
             }
         }
@@ -404,6 +418,58 @@ export const leaveEvent = async (req: AuthRequest, res: Response) => {
         return res.json({ message: 'Vous avez quitté l\'événement' });
     } catch (error) {
         logger.error('leaveEvent error:', error);
+        return res.status(500).json({ message: 'Erreur serveur' });
+    }
+};
+// DELETE /api/events/:id/participants/:participantId - Exclure un participant
+export const removeParticipant = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.user?.id;
+        const { id, participantId } = req.params;
+
+        if (!userId) {
+            return res.status(401).json({ message: 'Non authentifié' });
+        }
+
+        const event = await Event.findById(id);
+
+        if (!event) {
+            return res.status(404).json({ message: 'Événement non trouvé' });
+        }
+
+        // Seul le créateur peut exclure des participants
+        if (event.creator.toString() !== userId) {
+            return res.status(403).json({ message: 'Seul le créateur peut exclure des participants' });
+        }
+
+        // Le créateur ne peut pas s'exclure lui-même
+        if (event.creator.toString() === participantId) {
+            return res.status(403).json({ message: 'Le créateur ne peut pas s\'exclure lui-même' });
+        }
+
+        // Vérifier que le participant existe dans l'événement
+        if (!event.participants.includes(new mongoose.Types.ObjectId(participantId))) {
+            return res.status(404).json({ message: 'Ce participant n\'existe pas pour cet événement' });
+        }
+
+        // Retirer le participant
+        event.participants = event.participants.filter(
+            (p: any) => p.toString() !== participantId
+        );
+
+        // Supprimer aussi l'invitation (si elle existe)
+        await EventInvitation.deleteOne({
+            event: id,
+            invitedUser: participantId
+        });
+
+        await event.save();
+
+        logger.info(`Participant ${participantId} exclu de l'événement ${id} par ${userId}`);
+
+        return res.json({ message: 'Participant exclu avec succès' });
+    } catch (error) {
+        logger.error('removeParticipant error:', error);
         return res.status(500).json({ message: 'Erreur serveur' });
     }
 };

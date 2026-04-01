@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
-    const { user, logout, isAuthenticated } = useAuth();
+    const { logout, isAuthenticated } = useAuth();
     const navigate = useNavigate();
 
     const handleLogout = () => {
@@ -14,7 +14,6 @@ const Navbar = () => {
 
     return (
         <>
-            {/* Sprite SVG: toutes les icônes sont définies ici */}
             <svg style={{ display: 'none' }}>
                 <defs>
                     {/* Dashboard (tableau de bord) */}

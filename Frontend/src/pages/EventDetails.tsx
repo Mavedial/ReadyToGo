@@ -22,6 +22,7 @@ const EventDetails: React.FC = () => {
     const [actionError, setActionError] = useState('');
     const [bestDate, setBestDate] = useState<string | null>(null);
     const [calculatingDate, setCalculatingDate] = useState(false);
+    const [removingParticipant, setRemovingParticipant] = useState<string | null>(null);
 
     // Invite users
     const [inviteQuery, setInviteQuery] = useState('');
@@ -62,6 +63,20 @@ const EventDetails: React.FC = () => {
             navigate('/events');
         } catch {
             setActionError('Erreur lors de la suppression de l\'événement');
+        }
+    };
+
+    const handleRemoveParticipant = async (participantId: string, participantName: string) => {
+        if (!event || !window.confirm(`Êtes-vous sûr de vouloir exclure ${participantName} ?`)) return;
+
+        setRemovingParticipant(participantId);
+        try {
+            await eventAPI.removeParticipant(event._id, participantId);
+            loadEvent(event._id);
+        } catch {
+            setActionError('Erreur lors de l\'exclusion du participant');
+        } finally {
+            setRemovingParticipant(null);
         }
     };
 
@@ -210,14 +225,30 @@ const EventDetails: React.FC = () => {
                             <p className="text-muted">Aucun participant pour l'instant</p>
                         ) : (
                             <ul className="user-list">
-                                {event.participants.map((p) => (
-                                    <li
-                                        key={(p as any)._id ?? p.id}
-                                        className="user-list-item"
-                                    >
-                                        {p.username}
-                                    </li>
-                                ))}
+                                {event.participants.map((p) => {
+                                    const pId = (p as any)._id ?? p.id;
+                                    const isCreatorParticipant = pId === creatorId;
+                                    return (
+                                        <li
+                                            key={pId}
+                                            className="user-list-item"
+                                            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                                        >
+                                            <span>{p.username}</span>
+                                            {isCreator && !isCreatorParticipant && (
+                                                <button
+                                                    className="btn btn-danger btn-sm"
+                                                    onClick={() => handleRemoveParticipant(pId, p.username)}
+                                                    disabled={removingParticipant === pId}
+                                                    title="Exclure ce participant"
+                                                    style={{ padding: '0.25rem 0.5rem', fontSize: '0.9rem' }}
+                                                >
+                                                    {removingParticipant === pId ? '⏳' : '×'}
+                                                </button>
+                                            )}
+                                        </li>
+                                    );
+                                })}
                             </ul>
                         )}
                     </div>

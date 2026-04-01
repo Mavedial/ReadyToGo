@@ -65,6 +65,8 @@ export const eventAPI = {
     respondToInvitation: (invitationId: string, action: 'accepted' | 'declined') =>
         api.put(`/events/invitations/${invitationId}/respond`, { action }),
     leaveEvent: (eventId: string) => api.delete(`/events/${eventId}/leave`),
+    removeParticipant: (eventId: string, participantId: string) =>
+        api.delete(`/events/${eventId}/participants/${participantId}`),
 };
 
 // ===== AVAILABILITIES =====

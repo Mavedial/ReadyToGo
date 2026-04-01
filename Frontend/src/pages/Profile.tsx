@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { userAPI } from '../services/api';
 
 const Profile: React.FC = () => {
-    const { user, logout } = useAuth();
+    const { user, logout, updateUserProfile, refreshProfile } = useAuth();
     const [username, setUsername] = useState(user?.username ?? '')
     const [email, setEmail] = useState(user?.email ?? '');
     const [newEmail, setNewEmail] = useState('');
@@ -41,8 +41,10 @@ const Profile: React.FC = () => {
 
         setSaving(true);
         try {
-            await userAPI.updateProfile({ username: username.trim() });
-            setSuccess('Profil mis à jour avec succès !');
+            const response = await userAPI.updateProfile({ username: username.trim() });
+            if (updateUserProfile && response.data.user) {
+                updateUserProfile(response.data.user);
+            }            setSuccess('Profil mis à jour avec succès !');
         } catch (err: any) {
             setError(err.response?.data?.message || 'Erreur lors de la mise à jour');
         } finally {
@@ -93,10 +95,20 @@ const Profile: React.FC = () => {
 
         setSaving(true);
         try {
-            setEmailSuccess('Email mis à jour avec succès !');
+            const response = await userAPI.updateProfile({ email: newEmail.trim() });
             setEmail(newEmail);
             setNewEmail('');
             setIsEditingEmail(false);
+
+            if (updateUserProfile && response.data.user) {
+                updateUserProfile(response.data.user);
+            }
+
+            if (refreshProfile) {
+                await refreshProfile();
+            }
+
+            setEmailSuccess('Email mis à jour avec succès !');
         } catch (err: any) {
             setEmailError(
                 err.response?.data?.message || 'Erreur lors de la mise à jour de l\'email'

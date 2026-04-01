@@ -50,6 +50,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.removeItem('token');
     };
 
+    const updateUserProfile = (updatedUser: User) => {
+        setUser(updatedUser);
+    };
+
+    const refreshProfile = async () => {
+        try {
+            const { data } = await userAPI.getProfile();
+            setUser(data);
+            return data;
+        } catch (error) {
+            console.error('Erreur lors du refresh du profil:', error);
+            throw error;
+        }
+    };
+
     if (loading) {
         return (
             <div style={{
@@ -74,6 +89,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 register,
                 logout,
                 isAuthenticated: !!token,
+                updateUserProfile,
+                refreshProfile,
             }}
         >
             {children}
