@@ -6,7 +6,4 @@ export interface AuthRequest extends Request {
         iat:  number;
         exp: number;
     };
-    body: any;
-    params: any;
-    query: any;
 }
